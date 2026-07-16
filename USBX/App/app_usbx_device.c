@@ -29,6 +29,7 @@
 #include "tx_api.h"
 #include "ux_api.h"
 #include "ux_dcd_stm32.h"
+#include <stdatomic.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +57,8 @@ static TX_THREAD ux_device_app_thread;
 /* USER CODE BEGIN PV */
 extern PCD_HandleTypeDef hpcd_USB_DRD_FS;
 static TX_THREAD ux_cdc_write_thread;
+static TX_THREAD sample_adc_thread;
+static volatile atomic_bool usb_connected;
 
 /* USER CODE END PV */
 
@@ -196,6 +199,13 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
     return TX_THREAD_ERROR;
   }
 
+  if (tx_thread_create(&sample_adc_thread, "sample_adc_thread_entry", sample_adc_thread_entry, 1, pointer + 1024, 1024, 9, 9, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
+  {
+    Error_Handler();
+  }
+
+
+
   /* USER CODE END MX_USBX_Device_Init1 */
 
   return ret;
@@ -210,7 +220,6 @@ static VOID app_ux_device_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN app_ux_device_thread_entry */
   TX_PARAMETER_NOT_USED(thread_input);
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 1);
 
   HAL_PWREx_EnableVddUSB();
 
@@ -225,6 +234,16 @@ static VOID app_ux_device_thread_entry(ULONG thread_input)
   ux_dcd_stm32_initialize((ULONG) USB_DRD_FS, (ULONG) &hpcd_USB_DRD_FS);
 
   HAL_PCD_Start(&hpcd_USB_DRD_FS);
+
+  // Status LED
+  while (1) {
+    tx_thread_sleep(50);
+    if (usb_connected) {
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    } else {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 0);
+    }
+  }
   /* USER CODE END app_ux_device_thread_entry */
 }
 
@@ -247,6 +266,7 @@ static UINT USBD_ChangeFunction(ULONG Device_State)
     case UX_DEVICE_ATTACHED:
 
       /* USER CODE BEGIN UX_DEVICE_ATTACHED */
+      usb_connected = 1;
       /* USER CODE END UX_DEVICE_ATTACHED */
 
       break;
@@ -254,6 +274,7 @@ static UINT USBD_ChangeFunction(ULONG Device_State)
     case UX_DEVICE_REMOVED:
 
       /* USER CODE BEGIN UX_DEVICE_REMOVED */
+      usb_connected = 0;
       /* USER CODE END UX_DEVICE_REMOVED */
 
       break;

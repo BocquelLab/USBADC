@@ -56,6 +56,7 @@ VOID USBD_CDC_ACM_ParameterChange(VOID *cdc_acm_instance);
 
 /* USER CODE BEGIN EFP */
 VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input);
+VOID sample_adc_thread_entry(ULONG thread_input);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
