@@ -341,7 +341,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  while (1) {}
   NVIC_SystemReset();
   /* USER CODE END Error_Handler_Debug */
 }

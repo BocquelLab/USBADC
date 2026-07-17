@@ -297,7 +297,7 @@ static UINT USBD_ChangeFunction(ULONG Device_State)
     case UX_DCD_STM32_DEVICE_SUSPENDED:
 
       /* USER CODE BEGIN UX_DCD_STM32_DEVICE_SUSPENDED */
-
+      usb_connected = 0;
       /* USER CODE END UX_DCD_STM32_DEVICE_SUSPENDED */
 
       break;
@@ -305,7 +305,7 @@ static UINT USBD_ChangeFunction(ULONG Device_State)
     case UX_DCD_STM32_DEVICE_RESUMED:
 
       /* USER CODE BEGIN UX_DCD_STM32_DEVICE_RESUMED */
-
+      usb_connected = 1;
       /* USER CODE END UX_DCD_STM32_DEVICE_RESUMED */
 
       break;

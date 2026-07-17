@@ -24,14 +24,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "main.h"
+#include "stm32u073xx.h"
 #include "stm32u0xx_hal_adc.h"
 #include "tx_api.h"
 #include "ux_api.h"
 #include "ux_device_class_cdc_acm.h"
 #include <limits.h>
 #include <stdatomic.h>
-#include <string.h>
-#include "stm32u0xx_hal.h"
 
 /* USER CODE END Includes */
 
@@ -82,6 +81,10 @@ UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_PARAMETER CDC_VCP_LineCoding =
   */
 VOID USBD_CDC_ACM_Activate(VOID *cdc_acm_instance)
 {
+  static _Bool already_connected = 0;
+  if (already_connected) NVIC_SystemReset();
+  already_connected = 1;
+
   /* USER CODE BEGIN USBD_CDC_ACM_Activate */
   cdc_acm = (UX_SLAVE_CLASS_CDC_ACM *) cdc_acm_instance;
 
@@ -104,6 +107,7 @@ VOID USBD_CDC_ACM_Deactivate(VOID *cdc_acm_instance)
 {
   /* USER CODE BEGIN USBD_CDC_ACM_Deactivate */
   UX_PARAMETER_NOT_USED(cdc_acm_instance);
+  cdc_acm = UX_NULL;
   /* USER CODE END USBD_CDC_ACM_Deactivate */
 
   return;
@@ -172,6 +176,7 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
   while (1)
   {
     sleep_ms(200);
+    if (cdc_acm == UX_NULL) continue;
     ULONG len = sprintf((char *) &buffer, "Power meter: %d mV\r\nUSBsense: %d mV\r\ntemperature: %d mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
     ULONG length_written;
 
