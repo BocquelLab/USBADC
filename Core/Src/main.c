@@ -185,6 +185,8 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
 
+  HAL_ADCEx_Calibration_Start(&hadc1);
+
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_4;
