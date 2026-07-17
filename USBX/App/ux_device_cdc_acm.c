@@ -30,6 +30,8 @@
 #include "ux_device_class_cdc_acm.h"
 #include <limits.h>
 #include <stdatomic.h>
+#include <string.h>
+#include "stm32u0xx_hal.h"
 
 /* USER CODE END Includes */
 
@@ -124,7 +126,7 @@ VOID USBD_CDC_ACM_ParameterChange(VOID *cdc_acm_instance)
 
   device = &_ux_system_slave->ux_system_slave_device;
   transfer_request = &device->ux_slave_device_control_endpoint.ux_slave_endpoint_transfer_request;
-  request = *(transfer_request->ux_slave_transfer_request_setup);
+  request = *(transfer_request->ux_slave_transfer_request_setup + UX_SETUP_REQUEST);
 
   switch (request) {
     case UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_LINE_CODING:
@@ -166,23 +168,43 @@ atomic_uint_fast32_t pin_a3_val;
 VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);
-  ULONG actual_length;
   char buffer[64];
   while (1)
   {
     sleep_ms(200);
-    ULONG len = sprintf((char *) &buffer, "Power meter: %d mV\nUSBsense: %d mV\ntemperature: %d mV\n\n", power_meter_val, usb_sense_val, temperature_val);
-    ux_device_class_cdc_acm_write(cdc_acm, (UCHAR *) buffer, len, &actual_length);
+    ULONG len = sprintf((char *) &buffer, "Power meter: %d mV\r\nUSBsense: %d mV\r\ntemperature: %d mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
+    ULONG length_written;
+
+    ux_device_class_cdc_acm_write(cdc_acm, (UCHAR *) buffer, len, &length_written);
+  }
+}
+
+VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
+{
+  UX_PARAMETER_NOT_USED(thread_input);
+  UCHAR buffer[64];
+  while (1)
+  {
+    sleep_ms(10);
+    if (cdc_acm == UX_NULL) continue;
+
+    ULONG length_read;
+    if (ux_device_class_cdc_acm_read(cdc_acm, buffer, sizeof(buffer), &length_read) != UX_SUCCESS) Error_Handler();
+    if (length_read > 0 && buffer[length_read - 1] == 'A') {
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    }
+
+    ux_device_class_cdc_acm_write(cdc_acm, buffer, length_read, &length_read);
   }
 }
 
 
 VOID sample_adc_thread_entry(ULONG thread_input)
 {
-  #define power_meter_channel ADC_CHANNEL_4;
-  #define usb_sense_channel ADC_CHANNEL_5;
-  #define temperature_channel ADC_CHANNEL_6;
-  #define pin_a3_channel ADC_CHANNEL_7;
+  #define power_meter_channel ADC_CHANNEL_4
+  #define usb_sense_channel ADC_CHANNEL_5
+  #define temperature_channel ADC_CHANNEL_6
+  #define pin_a3_channel ADC_CHANNEL_7
 
   UX_PARAMETER_NOT_USED(thread_input);
   ADC_ChannelConfTypeDef sConfig = {0};
@@ -192,6 +214,8 @@ VOID sample_adc_thread_entry(ULONG thread_input)
   // TODO: Make this non-blocking
   while (1)
   {
+    sleep_ms(100);
+
     sConfig.Channel = power_meter_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
@@ -215,8 +239,6 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
     pin_a3_val = HAL_ADC_GetValue(&hadc1);
-
-    sleep_ms(100);
   }
 }
 /* USER CODE END 1 */
