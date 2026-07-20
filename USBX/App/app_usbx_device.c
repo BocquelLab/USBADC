@@ -59,6 +59,7 @@ extern PCD_HandleTypeDef hpcd_USB_DRD_FS;
 static TX_THREAD ux_cdc_write_thread;
 static TX_THREAD ux_cdc_read_thread;
 static TX_THREAD sample_adc_thread;
+static TX_THREAD set_fan_pwm_thread;
 static volatile atomic_bool usb_connected;
 
 /* USER CODE END PV */
@@ -203,6 +204,11 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   if (tx_byte_allocate(byte_pool, (VOID **) &pointer, 1024, TX_NO_WAIT) != TX_SUCCESS)
     return TX_POOL_ERROR;
   if (tx_thread_create(&sample_adc_thread, "sample_adc_thread_entry", sample_adc_thread_entry, 1, pointer, 1024, 9, 9, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
+    return TX_THREAD_ERROR;
+
+  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, 1024, TX_NO_WAIT) != TX_SUCCESS)
+    return TX_POOL_ERROR;
+  if (tx_thread_create(&set_fan_pwm_thread, "set_fan_pwm_thread", set_fan_pwm_thread_entry, 1, pointer, 1024, 9, 9, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
     return TX_THREAD_ERROR;
 
 

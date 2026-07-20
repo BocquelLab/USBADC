@@ -81,10 +81,6 @@ UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_PARAMETER CDC_VCP_LineCoding =
   */
 VOID USBD_CDC_ACM_Activate(VOID *cdc_acm_instance)
 {
-  static _Bool already_connected = 0;
-  if (already_connected) NVIC_SystemReset();
-  already_connected = 1;
-
   /* USER CODE BEGIN USBD_CDC_ACM_Activate */
   cdc_acm = (UX_SLAVE_CLASS_CDC_ACM *) cdc_acm_instance;
 
@@ -246,4 +242,26 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     pin_a3_val = HAL_ADC_GetValue(&hadc1);
   }
 }
+
+// TODO: Merge this into the ADC sampling thread to reduce complexity?
+VOID set_fan_pwm_thread_entry(ULONG thread_input)
+{
+  UX_PARAMETER_NOT_USED(thread_input);
+
+  LPTIM_OC_ConfigTypeDef oc_config = {
+    .OCPolarity = LPTIM_OCPOLARITY_HIGH,
+  };
+
+  // TODO: Make a lookup table from temperature to PWM ratio?
+  while (1)
+  {
+    sleep_ms(200);
+
+    // Linear map from [0..4096[ to [0..640[
+    oc_config.Pulse = temperature_val * 639 / 4096;
+
+    HAL_LPTIM_OC_ConfigChannel(&hlptim2, &oc_config, 1);
+  }
+}
+
 /* USER CODE END 1 */

@@ -185,8 +185,6 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
 
-  HAL_ADCEx_Calibration_Start(&hadc1);
-
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_4;
@@ -220,7 +218,7 @@ static void MX_LPTIM2_Init(void)
   hlptim2.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
   hlptim2.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
   hlptim2.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
-  hlptim2.Init.Period = 65535;
+  hlptim2.Init.Period = 639;
   hlptim2.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
   hlptim2.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
   hlptim2.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
@@ -240,6 +238,7 @@ static void MX_LPTIM2_Init(void)
   HAL_LPTIM_MspPostInit(&hlptim2);
 
 }
+
 
 /**
   * @brief USB Initialization Function
@@ -287,7 +286,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_4
@@ -314,6 +313,17 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef *hlptim) {
+  if (hlptim->Instance == LPTIM2) {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 1);
+  }
+}
+
+void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim) {
+  if (hlptim->Instance == LPTIM2) {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 0);
+  }
+}
 /* USER CODE END 4 */
 
 /**
