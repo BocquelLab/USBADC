@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include "main.h"
 #include "stm32u073xx.h"
 #include "stm32u0xx_hal_adc.h"
@@ -223,6 +224,10 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
   }
 }
 
+float adc_value_to_voltage(uint32_t value) {
+  const float value_float = value;
+  return value_float * 3.3 / 4095.0;
+}
 
 VOID sample_adc_thread_entry(ULONG thread_input)
 {
@@ -246,18 +251,21 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
     power_meter_val = HAL_ADC_GetValue(&hadc1);
+    const float power_meter_voltage = adc_value_to_voltage(power_meter_val);
 
     sConfig.Channel = usb_sense_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
     usb_sense_val = HAL_ADC_GetValue(&hadc1);
+    const bool usb_detected = usb_sense_val > 2000;
 
     sConfig.Channel = temperature_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
     temperature_val = HAL_ADC_GetValue(&hadc1);
+    const float temperature_voltage = adc_value_to_voltage(temperature_val);
 
     sConfig.Channel = pin_a3_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
@@ -265,8 +273,8 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     HAL_ADC_PollForConversion(&hadc1, 1000);
     pin_a3_val = HAL_ADC_GetValue(&hadc1);
 
-    char buffer[64];
-    ULONG len = sprintf((char *) &buffer, "Power meter: %d mV\r\nUSBsense: %d mV\r\ntemperature: %d mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
+    char buffer[71];
+    ULONG len = sprintf((char *) &buffer, "Power meter: %f mV\r\nUSBsense: %d mV\r\ntemperature: %f mV\r\n\r\n", power_meter_voltage, usb_detected, temperature_voltage);
 
     struct String string = {
       .ptr = malloc(sizeof(char) * len),
