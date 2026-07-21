@@ -235,10 +235,9 @@ static void MX_LPTIM2_Init(void)
   }
   /* USER CODE BEGIN LPTIM2_Init 2 */
   /* USER CODE END LPTIM2_Init 2 */
-  HAL_LPTIM_MspPostInit(&hlptim2);
+  HAL_LPTIM_Counter_Start_IT(&hlptim2);
 
 }
-
 
 /**
   * @brief USB Initialization Function
@@ -286,7 +285,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_4
@@ -316,12 +315,14 @@ static void MX_GPIO_Init(void)
 void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef *hlptim) {
   if (hlptim->Instance == LPTIM2) {
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 1);
   }
 }
 
 void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim) {
   if (hlptim->Instance == LPTIM2) {
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 0);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 0);
   }
 }
 /* USER CODE END 4 */
@@ -353,7 +354,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  NVIC_SystemReset();
+  // NVIC_SystemReset();
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT

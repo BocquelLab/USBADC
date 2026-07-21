@@ -38,7 +38,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+struct String {
+  char *ptr;
+  ULONG len;
+};
+extern TX_QUEUE ux_cdc_write_queue;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

@@ -56,6 +56,7 @@ static TX_THREAD ux_device_app_thread;
 
 /* USER CODE BEGIN PV */
 extern PCD_HandleTypeDef hpcd_USB_DRD_FS;
+TX_QUEUE ux_cdc_write_queue;
 static TX_THREAD ux_cdc_write_thread;
 static TX_THREAD ux_cdc_read_thread;
 static TX_THREAD sample_adc_thread;
@@ -211,6 +212,11 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   if (tx_thread_create(&set_fan_pwm_thread, "set_fan_pwm_thread", set_fan_pwm_thread_entry, 1, pointer, 1024, 9, 9, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
     return TX_THREAD_ERROR;
 
+  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, sizeof(struct String) * 32, TX_NO_WAIT) != TX_SUCCESS)
+    return TX_POOL_ERROR;
+
+  if (tx_queue_create(&ux_cdc_write_queue, "ux_cdc_write_queue", sizeof(struct String) / sizeof (ULONG), pointer, 32 * sizeof(struct String)) != TX_SUCCESS)
+    return TX_QUEUE_ERROR;
 
 
   /* USER CODE END MX_USBX_Device_Init1 */

@@ -96,6 +96,7 @@ PA2.Signal=ADC1_IN6
 PA3.Locked=true
 PA3.Mode=IN7
 PA3.Signal=ADC1_IN7
+PA4.Locked=true
 PA4.Signal=S_LPTIM2_CH1
 PA5.Locked=true
 PA5.Signal=GPIO_Output

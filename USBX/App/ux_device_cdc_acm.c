@@ -26,6 +26,8 @@
 #include "main.h"
 #include "stm32u073xx.h"
 #include "stm32u0xx_hal_adc.h"
+#include "app_usbx_device.h"
+#include "stm32u0xx_hal_gpio.h"
 #include "tx_api.h"
 #include "ux_api.h"
 #include "ux_device_class_cdc_acm.h"
@@ -168,15 +170,25 @@ atomic_uint_fast32_t pin_a3_val;
 VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);
-  char buffer[64];
+
   while (1)
   {
-    sleep_ms(200);
-    if (cdc_acm == UX_NULL) continue;
-    ULONG len = sprintf((char *) &buffer, "Power meter: %d mV\r\nUSBsense: %d mV\r\ntemperature: %d mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
-    ULONG length_written;
+    ULONG ignore;
 
-    ux_device_class_cdc_acm_write(cdc_acm, (UCHAR *) buffer, len, &length_written);
+    struct String string;
+    if (tx_queue_receive(&ux_cdc_write_queue, (void *) &string, TX_WAIT_FOREVER) != TX_SUCCESS) continue;
+    if (cdc_acm == UX_NULL) {
+      free(string.ptr);
+      continue;
+    };
+
+    // if (bytes == 0) HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    if (ux_device_class_cdc_acm_write(cdc_acm, (UCHAR *) string.ptr, string.len, &ignore) != UX_SUCCESS) {
+      free(string.ptr);
+      continue;
+    }
+
+    free(string.ptr);
   }
 }
 
@@ -184,18 +196,30 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);
   UCHAR buffer[64];
+
   while (1)
   {
     sleep_ms(10);
     if (cdc_acm == UX_NULL) continue;
 
     ULONG length_read;
-    if (ux_device_class_cdc_acm_read(cdc_acm, buffer, sizeof(buffer), &length_read) != UX_SUCCESS) Error_Handler();
+    if (ux_device_class_cdc_acm_read(cdc_acm, buffer, sizeof(buffer), &length_read) != UX_SUCCESS) continue;
     if (length_read > 0 && buffer[length_read - 1] == 'A') {
       HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
     }
 
-    ux_device_class_cdc_acm_write(cdc_acm, buffer, length_read, &length_read);
+    const struct String string = {
+      .ptr = malloc(sizeof(char) * length_read),
+      .len = length_read,
+    };
+    if (string.ptr == 0) continue;
+
+    memcpy(string.ptr, buffer, length_read);
+
+    if (tx_queue_send(&ux_cdc_write_queue, (void *) &string, TX_WAIT_FOREVER) != UX_SUCCESS) {
+      free(string.ptr);
+      continue;
+    };
   }
 }
 
@@ -206,8 +230,9 @@ VOID sample_adc_thread_entry(ULONG thread_input)
   #define usb_sense_channel ADC_CHANNEL_5
   #define temperature_channel ADC_CHANNEL_6
   #define pin_a3_channel ADC_CHANNEL_7
-
   UX_PARAMETER_NOT_USED(thread_input);
+
+  ULONG garbage;
   ADC_ChannelConfTypeDef sConfig = {0};
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLINGTIME_COMMON_1;
@@ -240,6 +265,23 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
     pin_a3_val = HAL_ADC_GetValue(&hadc1);
+
+    char buffer[64];
+    ULONG len = sprintf((char *) &buffer, "Power meter: %d mV\r\nUSBsense: %d mV\r\ntemperature: %d mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
+
+    struct String string = {
+      .ptr = malloc(sizeof(char) * len),
+      .len = len,
+    };
+
+    if (string.ptr != 0) {
+      memcpy(string.ptr, buffer, len);
+
+      if (tx_queue_send(&ux_cdc_write_queue, &string, TX_NO_WAIT) != TX_SUCCESS) {
+        free(string.ptr);
+        continue;
+      }
+    }
   }
 }
 
@@ -258,7 +300,9 @@ VOID set_fan_pwm_thread_entry(ULONG thread_input)
     sleep_ms(200);
 
     // Linear map from [0..4096[ to [0..640[
-    oc_config.Pulse = temperature_val * 639 / 4096;
+    // It might make more sense to have a lookup table of some sort
+    // that maps temperature to PWM duty cycle
+    oc_config.Pulse = temperature_val * 639 / 4095;
 
     HAL_LPTIM_OC_ConfigChannel(&hlptim2, &oc_config, 1);
   }
