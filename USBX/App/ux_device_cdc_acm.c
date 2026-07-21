@@ -232,7 +232,6 @@ VOID sample_adc_thread_entry(ULONG thread_input)
   #define pin_a3_channel ADC_CHANNEL_7
   UX_PARAMETER_NOT_USED(thread_input);
 
-  ULONG garbage;
   ADC_ChannelConfTypeDef sConfig = {0};
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLINGTIME_COMMON_1;

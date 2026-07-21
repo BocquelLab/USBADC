@@ -234,8 +234,8 @@ static void MX_LPTIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN LPTIM2_Init 2 */
+  HAL_LPTIM_PWM_Start(&hlptim2, 1);
   /* USER CODE END LPTIM2_Init 2 */
-  HAL_LPTIM_Counter_Start_IT(&hlptim2);
 
 }
 
@@ -312,19 +312,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef *hlptim) {
-  if (hlptim->Instance == LPTIM2) {
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 1);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 1);
-  }
-}
-
-void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim) {
-  if (hlptim->Instance == LPTIM2) {
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 0);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 0);
-  }
-}
 /* USER CODE END 4 */
 
 /**
