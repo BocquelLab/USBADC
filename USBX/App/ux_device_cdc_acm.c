@@ -23,12 +23,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdbool.h>
 #include "main.h"
 #include "stm32u073xx.h"
 #include "stm32u0xx_hal_adc.h"
 #include "app_usbx_device.h"
 #include "stm32u0xx_hal_gpio.h"
+#include "stm32u0xx_ll_adc.h"
 #include "tx_api.h"
 #include "ux_api.h"
 #include "ux_device_class_cdc_acm.h"
@@ -163,10 +163,10 @@ static void sleep_ms(ULONG amount_milliseconds)
   tx_thread_sleep(number_of_ticks);
 }
 
-atomic_uint_fast32_t power_meter_val;
-atomic_uint_fast32_t usb_sense_val;
-atomic_uint_fast32_t temperature_val;
-atomic_uint_fast32_t pin_a3_val;
+uint32_t power_meter_val;
+uint32_t usb_sense_val;
+uint32_t temperature_val;
+uint32_t pin_a3_val;
 
 VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
 {
@@ -224,10 +224,6 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
   }
 }
 
-float adc_value_to_voltage(uint32_t value) {
-  const float value_float = value;
-  return value_float * 3.3 / 4095.0;
-}
 
 VOID sample_adc_thread_entry(ULONG thread_input)
 {
@@ -250,31 +246,28 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
-    power_meter_val = HAL_ADC_GetValue(&hadc1);
-    const float power_meter_voltage = adc_value_to_voltage(power_meter_val);
+    power_meter_val = HAL_ADC_GetValue(&hadc1) * VREFINT_CAL_VREF / (1 << 12);
 
     sConfig.Channel = usb_sense_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
-    usb_sense_val = HAL_ADC_GetValue(&hadc1);
-    const bool usb_detected = usb_sense_val > 2000;
+    usb_sense_val = HAL_ADC_GetValue(&hadc1) * VREFINT_CAL_VREF / (1 << 12);
 
     sConfig.Channel = temperature_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
-    temperature_val = HAL_ADC_GetValue(&hadc1);
-    const float temperature_voltage = adc_value_to_voltage(temperature_val);
+    temperature_val = HAL_ADC_GetValue(&hadc1) * VREFINT_CAL_VREF / (1 << 12);
 
     sConfig.Channel = pin_a3_channel;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) continue;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1000);
-    pin_a3_val = HAL_ADC_GetValue(&hadc1);
+    pin_a3_val = HAL_ADC_GetValue(&hadc1) * VREFINT_CAL_VREF / (1 << 12);
 
-    char buffer[71];
-    ULONG len = sprintf((char *) &buffer, "Power meter: %f mV\r\nUSBsense: %d mV\r\ntemperature: %f mV\r\n\r\n", power_meter_voltage, usb_detected, temperature_voltage);
+    char buffer[128];
+    ULONG len = sprintf((char *) &buffer, "Power meter: %ld mV\r\nUSBsense: %ld mV\r\ntemperature: %ld mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
 
     struct String string = {
       .ptr = malloc(sizeof(char) * len),
