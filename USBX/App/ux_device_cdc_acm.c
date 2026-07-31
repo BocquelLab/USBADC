@@ -195,6 +195,90 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
   }
 }
 
+#define log_current_position {                                                        \
+      sleep_ms(100);                                                                  \
+      struct String string = {                                                        \
+        .ptr = malloc(sizeof(char) * 128),                                            \
+        .len = 128,                                                                   \
+      };                                                                              \
+                                                                                      \
+      if (string.ptr != NULL) {                                                       \
+        string.len = sprintf(string.ptr, "%s: %d\r\n", __func__, __LINE__);           \
+                                                                                      \
+        if (tx_queue_send(&ux_cdc_write_queue, &string, TX_NO_WAIT) != TX_SUCCESS) {  \
+          free(string.ptr);                                                           \
+        }                                                                             \
+      }                                                                               \
+      sleep_ms(100);                                                                  \
+}                                                                                     \
+
+static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
+  log_current_position
+  struct USBADC_PROTOCOL_PACKET out_packet = {
+    .id = packet.id,
+  };
+
+  char *out_bytes = NULL;
+  uint32_t out_len = 0;
+  switch (packet.id) {
+    case USBADC_PROTOCOL_REQUEST_PING:
+      log_current_position
+      {
+        struct USBADC_PROTOCOL_REQUEST_PING in_data = {0};
+
+        for (uint8_t i = 0 ; i < 4 ; i++) {
+          in_data.bytes <<= 8;
+          in_data.bytes += packet.data[i];
+        }
+
+        log_current_position
+        struct USBADC_PROTOCOL_RESPONSE_PONG out_data = {0};
+        out_data.bytes = in_data.bytes;
+
+        log_current_position
+        out_packet.type = USBADC_PROTOCOL_RESPONSE_PONG;
+        out_packet.data = (char *) &out_data;
+        out_packet.length = sizeof(out_data);
+
+        log_current_position
+        out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
+        log_current_position
+      }
+      break;
+    case USBADC_PROTOCOL_REQUEST_READ_ADC:
+      log_current_position
+      break;
+    case USBADC_PROTOCOL_REQUEST_WRITE_PIN:
+      log_current_position
+      break;
+    case USBADC_PROTOCOL_REQUEST_REBOOT:
+      log_current_position
+      break;
+
+    default:
+      log_current_position
+      // Unreachable
+      break;
+  }
+
+
+  log_current_position
+  struct String string = {
+    .ptr = malloc(sizeof(char) * out_len),
+    .len = out_len,
+  };
+
+  if (string.ptr != NULL) {
+    memcpy(string.ptr, out_bytes, out_len);
+
+    if (tx_queue_send(&ux_cdc_write_queue, &string, TX_NO_WAIT) != TX_SUCCESS) {
+      free(string.ptr);
+    }
+  }
+
+  log_current_position
+}
+
 VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);
@@ -212,23 +296,41 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
     if (ux_device_class_cdc_acm_read(cdc_acm, (UCHAR *) free_space_ptr, length_remaining, &length_read) != UX_SUCCESS) continue;
     vector.length += length_read;
 
+    log_current_position;
+
     bool keep_decoding_packets = true;
-    while (keep_decoding_packets) {
+    while (keep_decoding_packets && vector.length > 0) {
+      log_current_position;
       struct USBADC_PROTOCOL_PACKET packet;
       int32_t decoded_length = usbadc_protocol_decode_packet(vector.data, vector.length, &packet);
+      char buffer[128];
+      int a = snprintf(buffer, 128, "%ld %d\r\n", decoded_length, vector.length);
+
+      struct String string = {
+        .ptr = malloc(sizeof(char) * a),
+        .len = a,
+      };
+
+      if (string.ptr != NULL) {
+        memcpy(string.ptr, buffer, a);
+
+        if (tx_queue_send(&ux_cdc_write_queue, &string, TX_NO_WAIT) != TX_SUCCESS) {
+          free(string.ptr);
+        }
+      }
       switch (decoded_length) {
         case USBADC_PROTOCOL_DECODE_DATA_LENGTH_TOO_SMALL:
           keep_decoding_packets = false;
           break;
 
-        case USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH : // Signal
+        case USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH: // Signal
           // TODO: Send a packet that signals that the sent version is wrong.
 
-        case USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES    : // The data doesn't start with the packet's magic bytes
-        case USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM       : // Packet is corrupted, discard it
+        case USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES: // The data doesn't start with the packet's magic bytes
+        case USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM: // Packet is corrupted, discard it
           {
             const uint8_t magic_bytes[4] = {0xAA, 0x55, 0xAA, 0x55};
-            char *next_magic_bytes_ptr = memmem(vector.data, vector.length, magic_bytes, 4);
+            char *next_magic_bytes_ptr = memmem(vector.data + 1, vector.length, magic_bytes, 4);
             if (next_magic_bytes_ptr == NULL) {
               byte_vector_delete_first_n_chars(&vector, vector.length);
               keep_decoding_packets = false;
@@ -239,14 +341,16 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
           }
 
         default:
+          log_current_position;
+          handle_received_packet(packet);
           byte_vector_delete_first_n_chars(&vector, decoded_length);
-          // TODO: Parse the received message
           break;
       }
     }
+
+    log_current_position;
   }
 }
-
 
 VOID sample_adc_thread_entry(ULONG thread_input)
 {
@@ -293,11 +397,12 @@ VOID sample_adc_thread_entry(ULONG thread_input)
     ULONG len = sprintf((char *) &buffer, "Power meter: %ld mV\r\nUSBsense: %ld mV\r\ntemperature: %ld mV\r\n\r\n", power_meter_val, usb_sense_val, temperature_val);
 
     struct String string = {
-      .ptr = malloc(sizeof(char) * len),
+      // .ptr = malloc(sizeof(char) * len),
+      .ptr = NULL,
       .len = len,
     };
 
-    if (string.ptr != 0) {
+    if (string.ptr != NULL) {
       memcpy(string.ptr, buffer, len);
 
       if (tx_queue_send(&ux_cdc_write_queue, &string, TX_NO_WAIT) != TX_SUCCESS) {
