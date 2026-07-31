@@ -44,6 +44,8 @@ Core/Src/stm32u0xx_hal_timebase_tim.c \
 USBX/App/ux_device_descriptors.c \
 USBX/App/app_usbx_device.c \
 USBX/App/ux_device_cdc_acm.c \
+USBX/App/byte_vector.c \
+USBX/App/protocol.c \
 AZURE_RTOS/App/app_azure_rtos.c \
 Drivers/STM32U0xx_HAL_Driver/Src/stm32u0xx_hal_tim.c \
 Drivers/STM32U0xx_HAL_Driver/Src/stm32u0xx_hal_tim_ex.c \

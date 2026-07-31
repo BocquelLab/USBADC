@@ -47,6 +47,7 @@ enum {
 #define USBADC_PROTOCOL_VERSION_MINOR (0)
 #define USBADC_PROTOCOL_VERSION_PATCH (1)
 
+
 struct USBADC_PROTOCOL_REQUEST_PING {
   uint32_t bytes;
 };
@@ -93,5 +94,14 @@ struct USBADC_PROTOCOL_PACKET {
 
 // Caller owns the returned memory.
 char *usbadc_protocol_encode_packet(struct USBADC_PROTOCOL_PACKET packet);
+
+enum USBADC_PROTOCOL_DECODE_ERRORS {
+    USBADC_PROTOCOL_DECODE_DATA_LENGTH_TOO_SMALL = -1,
+    USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES     = -2,
+    USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM        = -3,
+    USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH  = -4,
+};
+int32_t usbadc_protocol_decode_packet(char *data, uint32_t length, struct USBADC_PROTOCOL_PACKET *out);
+
 
 #endif // PROTOCOL_H

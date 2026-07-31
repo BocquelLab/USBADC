@@ -34,6 +34,8 @@
 #include "ux_device_class_cdc_acm.h"
 #include <limits.h>
 #include <stdatomic.h>
+#include "protocol.h"
+#include "byte_vector.h"
 
 /* USER CODE END Includes */
 
@@ -196,7 +198,8 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
 VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);
-  UCHAR buffer[64];
+  static char buffer[2048];
+  byte_vector vector = byte_vector_init(buffer, 2048);
 
   while (1)
   {
@@ -204,23 +207,43 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
     if (cdc_acm == UX_NULL) continue;
 
     ULONG length_read;
-    if (ux_device_class_cdc_acm_read(cdc_acm, buffer, sizeof(buffer), &length_read) != UX_SUCCESS) continue;
-    if (length_read > 0 && buffer[length_read - 1] == 'A') {
-      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    char *free_space_ptr;
+    uint32_t length_remaining = byte_vector_free_space_pointer(&vector, &free_space_ptr);
+    if (ux_device_class_cdc_acm_read(cdc_acm, (UCHAR *) free_space_ptr, length_remaining, &length_read) != UX_SUCCESS) continue;
+    vector.length += length_read;
+
+    bool keep_decoding_packets = true;
+    while (keep_decoding_packets) {
+      struct USBADC_PROTOCOL_PACKET packet;
+      int32_t decoded_length = usbadc_protocol_decode_packet(vector.data, vector.length, &packet);
+      switch (decoded_length) {
+        case USBADC_PROTOCOL_DECODE_DATA_LENGTH_TOO_SMALL:
+          keep_decoding_packets = false;
+          break;
+
+        case USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH : // Signal
+          // TODO: Send a packet that signals that the sent version is wrong.
+
+        case USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES    : // The data doesn't start with the packet's magic bytes
+        case USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM       : // Packet is corrupted, discard it
+          {
+            const uint8_t magic_bytes[4] = {0xAA, 0x55, 0xAA, 0x55};
+            char *next_magic_bytes_ptr = memmem(vector.data, vector.length, magic_bytes, 4);
+            if (next_magic_bytes_ptr == NULL) {
+              byte_vector_delete_first_n_chars(&vector, vector.length);
+              keep_decoding_packets = false;
+            } else {
+              byte_vector_delete_first_n_chars(&vector, next_magic_bytes_ptr - vector.data);
+            }
+            break;
+          }
+
+        default:
+          byte_vector_delete_first_n_chars(&vector, decoded_length);
+          // TODO: Parse the received message
+          break;
+      }
     }
-
-    const struct String string = {
-      .ptr = malloc(sizeof(char) * length_read),
-      .len = length_read,
-    };
-    if (string.ptr == 0) continue;
-
-    memcpy(string.ptr, buffer, length_read);
-
-    if (tx_queue_send(&ux_cdc_write_queue, (void *) &string, TX_WAIT_FOREVER) != UX_SUCCESS) {
-      free(string.ptr);
-      continue;
-    };
   }
 }
 
