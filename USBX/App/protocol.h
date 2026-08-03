@@ -48,32 +48,32 @@ enum {
 #define USBADC_PROTOCOL_VERSION_PATCH (1)
 
 
-struct USBADC_PROTOCOL_REQUEST_PING {
+struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_PING {
   uint32_t bytes;
 };
 
-struct USBADC_PROTOCOL_REQUEST_READ_ADC {
+struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_READ_ADC {
   uint8_t pin;
 };
 
-struct USBADC_PROTOCOL_REQUEST_WRITE_PIN {
+struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_WRITE_PIN {
   uint16_t pin; // Bitmask of the pins to write to
   uint8_t gpio;
   bool value; // 0 sets the output to low and 1 sets it to high
 };
 
-struct USBADC_PROTOCOL_REQUEST_VERSION {};
+struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_VERSION {};
 
-struct USBADC_PROTOCOL_RESPONSE_PONG {
+struct __attribute__((packed)) USBADC_PROTOCOL_RESPONSE_PONG {
   uint32_t bytes;
 };
 
-struct USBADC_PROTOCOL_RESPONSE_READ_ADC {
+struct __attribute__((packed)) USBADC_PROTOCOL_RESPONSE_READ_ADC {
   uint32_t pin;
   uint16_t data;
 };
 
-struct USBADC_PROTOCOL_RESPONSE_ERROR {
+struct __attribute__((packed)) USBADC_PROTOCOL_RESPONSE_ERROR {
   uint8_t reason;
 };
 enum USBADC_PROTOCOL_RESPONSE_ERROR_REASONS {
@@ -83,13 +83,13 @@ enum USBADC_PROTOCOL_RESPONSE_ERROR_REASONS {
   USBADC_PROTOCOL_RESPONSE_ERROR_REASON_UNKNOWN = 3,
 };
 
-struct USBADC_PROTOCOL_RESPONSE_VERSION {
+struct __attribute__((packed)) USBADC_PROTOCOL_RESPONSE_VERSION {
   uint8_t major;
   uint8_t minor;
   uint8_t patch;
 };
 
-struct USBADC_PROTOCOL_PACKET {
+struct __attribute__((packed)) USBADC_PROTOCOL_PACKET {
   uint16_t id;
   uint8_t type;
   uint8_t length;
