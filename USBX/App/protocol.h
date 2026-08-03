@@ -21,7 +21,6 @@
 // | Bytes       | Name        | Type             | Description                              |
 // +-------------+-------------+------------------+------------------------------------------+
 // | 0-3         | Magic       | u8[4]            | 0xAA 0x55 0xAA 0x55                      |
-// | 4-6         | Ver         | {u8,u8,u8}       | Semantic version (major.minor.patch).    |
 // | 7-8         | ID          | u16              | Request/response identifier.             |
 // | 9           | Type        | u8               | Message type.                            |
 // | 10          | Data Length | u8               | Bytes following this field.              |
@@ -35,12 +34,14 @@ enum {
   USBADC_PROTOCOL_REQUEST_READ_ADC = 0x01,
   USBADC_PROTOCOL_REQUEST_WRITE_PIN = 0x02,
   USBADC_PROTOCOL_REQUEST_REBOOT = 0x03,
+  USBADC_PROTOCOL_REQUEST_VERSION = 0x04,
 
   // Client response to server
   USBADC_PROTOCOL_RESPONSE_PONG = 0x80,
   USBADC_PROTOCOL_RESPONSE_READ_ADC = 0x81,
   USBADC_PROTOCOL_RESPONSE_WRITE_PIN = 0x82,
   USBADC_PROTOCOL_RESPONSE_ERROR = 0x83,
+  USBADC_PROTOCOL_RESPONSE_VERSION = 0x84,
 };
 
 #define USBADC_PROTOCOL_VERSION_MAJOR (0)
@@ -61,6 +62,7 @@ struct USBADC_PROTOCOL_REQUEST_WRITE_PIN {
   uint8_t value; // Range [0; 255] maps to [0; 3.3V]
 };
 
+struct USBADC_PROTOCOL_REQUEST_VERSION {};
 
 struct USBADC_PROTOCOL_RESPONSE_PONG {
   uint32_t bytes;
@@ -85,6 +87,12 @@ enum USBADC_PROTOCOL_RESPONSE_ERROR_REASONS {
   USBADC_PROTOCOL_RESPONSE_ERROR_REASON_UNKNOWN,
 };
 
+struct USBADC_PROTOCOL_RESPONSE_VERSION {
+  uint8_t major;
+  uint8_t minor;
+  uint8_t patch;
+};
+
 struct USBADC_PROTOCOL_PACKET {
   uint16_t id;
   uint8_t type;
@@ -99,7 +107,6 @@ enum USBADC_PROTOCOL_DECODE_ERRORS {
     USBADC_PROTOCOL_DECODE_DATA_LENGTH_TOO_SMALL = -1,
     USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES     = -2,
     USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM        = -3,
-    USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH  = -4,
 };
 int32_t usbadc_protocol_decode_packet(char *data, uint32_t length, struct USBADC_PROTOCOL_PACKET *out);
 

@@ -21,7 +21,7 @@ static uint32_t crc32(const void *data, size_t length)
     return ~crc;
 }
 
-#define BASE_PACKET_LENGTH (4 + 3 + 2 + 1 + 1 + 4)
+#define BASE_PACKET_LENGTH (4 + 2 + 1 + 1 + 4)
 
 uint32_t usbadc_protocol_encode_packet(struct USBADC_PROTOCOL_PACKET packet, char **out_bytes) {
   const uint32_t length = BASE_PACKET_LENGTH + packet.length;
@@ -35,11 +35,6 @@ uint32_t usbadc_protocol_encode_packet(struct USBADC_PROTOCOL_PACKET packet, cha
   (*(ptr++)) = 0x55;
   (*(ptr++)) = 0xAA;
   (*(ptr++)) = 0x55;
-
-  // Semantic Version
-  (*(ptr++)) = 0;
-  (*(ptr++)) = 0;
-  (*(ptr++)) = 1;
 
   // Message ID
   (*(ptr++)) = packet.id >> 8;
@@ -77,11 +72,6 @@ int32_t usbadc_protocol_decode_packet(char *data, uint32_t length, struct USBADC
   if ((*(ptr++)) != 0x55) return USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES;
   if ((*(ptr++)) != 0xAA) return USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES;
   if ((*(ptr++)) != 0x55) return USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES;
-
-  // Semantic Version
-  if ((*(ptr++)) != USBADC_PROTOCOL_VERSION_MAJOR) return USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH;
-  if ((*(ptr++)) != USBADC_PROTOCOL_VERSION_MINOR) return USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH;
-  if ((*(ptr++)) != USBADC_PROTOCOL_VERSION_PATCH) return USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH;
 
   out_packet.id = 0;
   // Message ID

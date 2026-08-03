@@ -220,7 +220,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
 
   char *out_bytes = NULL;
   uint32_t out_len = 0;
-  switch (packet.id) {
+  switch (packet.type) {
     case USBADC_PROTOCOL_REQUEST_PING:
       log_current_position
       {
@@ -231,18 +231,14 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
           in_data.bytes += packet.data[i];
         }
 
-        log_current_position
         struct USBADC_PROTOCOL_RESPONSE_PONG out_data = {0};
         out_data.bytes = __builtin_bswap32(in_data.bytes);
 
-        log_current_position
         out_packet.type = USBADC_PROTOCOL_RESPONSE_PONG;
         out_packet.data = (char *) &out_data;
         out_packet.length = sizeof(out_data);
 
-        log_current_position
         out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
-        log_current_position
       }
       break;
     case USBADC_PROTOCOL_REQUEST_READ_ADC:
@@ -253,6 +249,20 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
       break;
     case USBADC_PROTOCOL_REQUEST_REBOOT:
       log_current_position
+      NVIC_SystemReset();
+      break;
+    case USBADC_PROTOCOL_REQUEST_VERSION:
+      log_current_position
+      struct USBADC_PROTOCOL_RESPONSE_VERSION out_data = {0};
+      out_data.major = USBADC_PROTOCOL_VERSION_MAJOR;
+      out_data.minor = USBADC_PROTOCOL_VERSION_MINOR;
+      out_data.patch = USBADC_PROTOCOL_VERSION_PATCH;
+
+      out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
+      out_packet.data = (char *) &out_data;
+      out_packet.length = sizeof(out_data);
+
+      out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
       break;
 
     default:
@@ -322,9 +332,6 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
         case USBADC_PROTOCOL_DECODE_DATA_LENGTH_TOO_SMALL:
           keep_decoding_packets = false;
           break;
-
-        case USBADC_PROTOCOL_DECODE_VERSION_DOESNT_MATCH: // Signal
-          // TODO: Send a packet that signals that the sent version is wrong.
 
         case USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES: // The data doesn't start with the packet's magic bytes
         case USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM: // Packet is corrupted, discard it
