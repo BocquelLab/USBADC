@@ -233,7 +233,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
 
         log_current_position
         struct USBADC_PROTOCOL_RESPONSE_PONG out_data = {0};
-        out_data.bytes = in_data.bytes;
+        out_data.bytes = __builtin_bswap32(in_data.bytes);
 
         log_current_position
         out_packet.type = USBADC_PROTOCOL_RESPONSE_PONG;
