@@ -284,6 +284,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
           }
         }
 
+        out_data.data = __builtin_bswap16(out_data.data); // Make it little endian
         out_packet.type = USBADC_PROTOCOL_RESPONSE_READ_ADC;
         out_packet.data = (char *) &out_data;
         out_packet.length = sizeof(out_data);
