@@ -36,6 +36,7 @@
 #include <stdatomic.h>
 #include "protocol.h"
 #include "byte_vector.h"
+#include "assert.h"
 
 /* USER CODE END Includes */
 
@@ -244,6 +245,50 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
 
     case USBADC_PROTOCOL_REQUEST_READ_ADC: {
         log_current_position
+
+        struct USBADC_PROTOCOL_REQUEST_READ_ADC in_data = {0};
+        in_data.adc_channel = packet.data[0];
+
+        struct USBADC_PROTOCOL_RESPONSE_READ_ADC out_data = {0};
+
+        // There shouldn't be a race condition on accessing the shared variables between this task
+        // and the ADC read task because they are smaller than the MCU's word size.
+        switch (in_data.adc_channel) {
+          case USBADC_PROTOCOL_ADC_CHANNELS_POWER_METER:
+            static_assert(sizeof(power_meter_val) <= sizeof(size_t), "Race condition possible");
+            out_data.data = (uint16_t) power_meter_val;
+            break;
+          case USBADC_PROTOCOL_ADC_CHANNELS_USB_SENSE:
+            static_assert(sizeof(power_meter_val) <= sizeof(size_t), "Race condition possible");
+            out_data.data = (uint16_t) usb_sense_val;
+            break;
+          case USBADC_PROTOCOL_ADC_CHANNELS_TEMPERATURE:
+            static_assert(sizeof(power_meter_val) <= sizeof(size_t), "Race condition possible");
+            out_data.data = (uint16_t) temperature_val;
+            break;
+          case USBADC_PROTOCOL_ADC_CHANNELS_PIN_A3:
+            static_assert(sizeof(power_meter_val) <= sizeof(size_t), "Race condition possible");
+            out_data.data = (uint16_t) pin_a3_val;
+            break;
+          default: {
+            struct USBADC_PROTOCOL_RESPONSE_ERROR out_data = {
+              .reason = USBADC_PROTOCOL_RESPONSE_ERROR_REASON_NOT_AVAILABLE,
+            };
+
+            out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
+            out_packet.data = (char *) &out_data;
+            out_packet.length = sizeof(out_data);
+
+            out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
+            goto send_packet_to_write_thread;
+          }
+        }
+
+        out_packet.type = USBADC_PROTOCOL_RESPONSE_READ_ADC;
+        out_packet.data = (char *) &out_data;
+        out_packet.length = sizeof(out_data);
+
+        out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
       }
       break;
 
@@ -353,7 +398,7 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
       struct USBADC_PROTOCOL_PACKET packet;
       int32_t decoded_length = usbadc_protocol_decode_packet(vector.data, vector.length, &packet);
       char buffer[128];
-      int a = snprintf(buffer, 128, "%ld %d\r\n", decoded_length, vector.length);
+      int a = snprintf(buffer, 128, "%ld %ld\r\n", decoded_length, vector.length);
 
       struct String string = {
         .ptr = malloc(sizeof(char) * a),

@@ -52,8 +52,15 @@ struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_PING {
   uint32_t bytes;
 };
 
+enum USBADC_PROTOCOL_ADC_CHANNELS {
+  USBADC_PROTOCOL_ADC_CHANNELS_POWER_METER = 0,
+  USBADC_PROTOCOL_ADC_CHANNELS_USB_SENSE = 1,
+  USBADC_PROTOCOL_ADC_CHANNELS_TEMPERATURE = 2,
+  USBADC_PROTOCOL_ADC_CHANNELS_PIN_A3 = 3,
+};
+
 struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_READ_ADC {
-  uint8_t pin;
+  uint8_t adc_channel;
 };
 
 struct __attribute__((packed)) USBADC_PROTOCOL_REQUEST_WRITE_PIN {
@@ -69,7 +76,6 @@ struct __attribute__((packed)) USBADC_PROTOCOL_RESPONSE_PONG {
 };
 
 struct __attribute__((packed)) USBADC_PROTOCOL_RESPONSE_READ_ADC {
-  uint32_t pin;
   uint16_t data;
 };
 
