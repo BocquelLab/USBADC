@@ -166,10 +166,10 @@ static void sleep_ms(ULONG amount_milliseconds)
   tx_thread_sleep(number_of_ticks);
 }
 
-uint32_t power_meter_val;
-uint32_t usb_sense_val;
-uint32_t temperature_val;
-uint32_t pin_a3_val;
+volatile uint32_t power_meter_val;
+volatile uint32_t usb_sense_val;
+volatile uint32_t temperature_val;
+volatile uint32_t pin_a3_val;
 
 VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
 {
