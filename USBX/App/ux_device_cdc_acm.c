@@ -220,10 +220,10 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
 
   char *out_bytes = NULL;
   uint32_t out_len = 0;
+  // TODO: Check that packet.length has the right size to prevent accessing unknown memory
   switch (packet.type) {
-    case USBADC_PROTOCOL_REQUEST_PING:
-      log_current_position
-      {
+    case USBADC_PROTOCOL_REQUEST_PING: {
+        log_current_position
         struct USBADC_PROTOCOL_REQUEST_PING in_data = {0};
 
         for (uint8_t i = 0 ; i < 4 ; i++) {
@@ -241,28 +241,66 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
         out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
       }
       break;
-    case USBADC_PROTOCOL_REQUEST_READ_ADC:
-      log_current_position
-      break;
-    case USBADC_PROTOCOL_REQUEST_WRITE_PIN:
-      log_current_position
-      break;
-    case USBADC_PROTOCOL_REQUEST_REBOOT:
-      log_current_position
-      NVIC_SystemReset();
-      break;
-    case USBADC_PROTOCOL_REQUEST_VERSION:
-      log_current_position
-      struct USBADC_PROTOCOL_RESPONSE_VERSION out_data = {0};
-      out_data.major = USBADC_PROTOCOL_VERSION_MAJOR;
-      out_data.minor = USBADC_PROTOCOL_VERSION_MINOR;
-      out_data.patch = USBADC_PROTOCOL_VERSION_PATCH;
 
-      out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
-      out_packet.data = (char *) &out_data;
-      out_packet.length = sizeof(out_data);
+    case USBADC_PROTOCOL_REQUEST_READ_ADC: {
+        log_current_position
+      }
+      break;
 
-      out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
+    case USBADC_PROTOCOL_REQUEST_WRITE_PIN: {
+        log_current_position
+        struct USBADC_PROTOCOL_REQUEST_WRITE_PIN in_data = {0};
+        in_data.pin = (((uint16_t) packet.data[0]) << 8) | packet.data[1];
+        in_data.gpio = packet.data[2];
+        in_data.value = packet.data[3];
+
+        GPIO_TypeDef *gpio;
+        switch (in_data.gpio) {
+          case 0:
+            gpio = GPIOA;
+            break;
+          case 1:
+            gpio = GPIOB;
+            break;
+          default: {
+            log_current_position
+            struct USBADC_PROTOCOL_RESPONSE_ERROR out_data = {
+              .reason = USBADC_PROTOCOL_RESPONSE_ERROR_REASON_NOT_AVAILABLE,
+            };
+
+            out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
+            out_packet.data = (char *) &out_data;
+            out_packet.length = sizeof(out_data);
+
+            out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
+            goto send_packet_to_write_thread;
+          }
+        }
+
+        // TODO: Support analog outputs?
+        HAL_GPIO_WritePin(gpio, in_data.pin, in_data.value);
+        break;
+      }
+
+    case USBADC_PROTOCOL_REQUEST_REBOOT: {
+        log_current_position
+        NVIC_SystemReset();
+      }
+      break;
+
+    case USBADC_PROTOCOL_REQUEST_VERSION: {
+        log_current_position
+        struct USBADC_PROTOCOL_RESPONSE_VERSION out_data = {0};
+        out_data.major = USBADC_PROTOCOL_VERSION_MAJOR;
+        out_data.minor = USBADC_PROTOCOL_VERSION_MINOR;
+        out_data.patch = USBADC_PROTOCOL_VERSION_PATCH;
+
+        out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
+        out_packet.data = (char *) &out_data;
+        out_packet.length = sizeof(out_data);
+
+        out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
+      }
       break;
 
     default:
@@ -271,7 +309,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
       break;
   }
 
-
+  send_packet_to_write_thread:
   log_current_position
   struct String string = {
     .ptr = malloc(sizeof(char) * out_len),
@@ -286,6 +324,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
     }
   }
 
+  free(out_bytes);
   log_current_position
 }
 
