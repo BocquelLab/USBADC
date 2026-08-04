@@ -45,7 +45,7 @@ Le PCB possède deux boutons, `BOOT0` et `Reset`.
 `Reset` permet de redémarrer le microcontrôlleur, pratique pour débugger ou pour le redémarrer si il ne répond pas.
 `BOOT0` permet de signaler au bootloader du microcontrôlleur que l'on désire flasher un programme pour qu'il expose la classe `DFU`. Il faut simplement tenir le bouton en appuyant sur `Reset`. Comme mentionné plus tôt, je ne comprends pas pourquoi je n'arrive pas à faire fonctionner cette option.
 
-### Patchs à faire sur une version future
+### Corrections à apporter sur une version future
 Les connecteurs pour le ventilateur et le power meter overlap et ne peuvent donc pas être soudés directement sur le PCB.
 Trouver pourquoi la programmation par DFU ne fonctionne pas et régler le problème.
 
@@ -93,5 +93,28 @@ Le champs `Data` est les données associées au `Type` choisi.
 
 Le champs `CRC` (Cyclical Redundancy Checksum) sert à vérifier l'intégrité des données reçues. Lors de la réception d'un paquet, on calcule le checksum de tous les octets précédents. Si le checksum est identique à celui reçue, on peut être confiant qu'il n'y a pas eu d'erreur de transmission.
 
-Le protocole est ses fonctions de sérialization/désérialization sont spécifiées dans `firmware/USBX/App/protocol.h` et `firmware/USBX/App/protocol.c`.
+Le protocole est ses fonctions de sérialisation/désérialisation sont spécifiées dans `firmware/USBX/App/protocol.h` et `firmware/USBX/App/protocol.c`.
 Les structures qui représentent les données transmises ont l'attribut `__attribute__((packed))` pour éviter les champs de "padding". Cet attribute garanti qu'il n'y en aura pas.
+
+
+Sur le message `REQUEST_PING`, le client répond avec le message `RESPONSE_PONG` avec les mêmes données. Cela permet de s'assurer que le client fonctionne correctement.
+
+Sur le message `REQUEST_READ_ADC`, le client répond avec `RESPONSE_READ_ADC` la tension lue sur le channel correspondant.
+
+Sur le mesasge `REQUEST_WRITE_PIN`, le client ne répond pas et sort l'état demandée sur la pin demandée.
+
+Sur le mesasge `REQUEST_REBOOT`, le client ne répond pas et redémarre (la communication sera coupée).
+
+Sur le message `REQUEST_VERSION`, le client répond avec la version du protocole qu'il utilise. Cela permet de s'assurer que le client et le serveur sont sur la même version et que toutes les fonctionnalitées sont fonctionelles et supportées des deux côtés.
+
+Sur tous les messages, le client peut répondre avec `RESPONSE_ERROR` et spécifier la raison (`enum USBADC_PROTOCOL_RESPONSE_ERROR_REASONS`).
+
+### Fichiers (`firmware/USBX/App/`)
++ `app_usbx_device.c`: Point d'entrée `ThreadX` qui initialise les tâches et le périphérique USB et les files.
++ `ux_device_cdc_acm.c`: Définitions de toutes les tâches concurrentes qui roulent, dont l'écriture et la lecture sur le canal USB, la lecture de l'ADC et le contrôle de la vitesse du ventilateur.
++ `byte_vector.c`: Définition des fonctions pour manipuler une liste d'octets qui ne peut pas être agrandie.
++ `protocol.c`: Définition des fonctions pour sérialiser/désérialiser les packets envoyées/reçues
+
+
+## Software
+Dans `software/USBADC.py`, il y a la classe `USBADC` qui permet de communiquer avec le périphérique. Il est nécessaire d'installer `pyserial` pour être capable de communiquer.
