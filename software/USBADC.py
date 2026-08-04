@@ -61,8 +61,11 @@ class USBADC:
                 continue
 
             message_id = (all_bytes[4] << 8) + (all_bytes[5])
-
-            type = all_bytes[6]
+            try:
+                message_type = self.Command.Response(all_bytes[6])
+            except ValueError:
+                all_bytes = all_bytes[self.minimum_packet_length:]
+                continue
 
             data_length = all_bytes[7]
             if len(all_bytes) < self.minimum_packet_length + data_length:
@@ -74,7 +77,7 @@ class USBADC:
             # Chop the read bytes for the rest all bytes
             all_bytes = all_bytes[8 + 4 + data_length:]
 
-            print(message_id, type, data.hex(), checksum.hex())
+            print(message_id, message_type, data.hex(), checksum.hex())
 
 
     @staticmethod
