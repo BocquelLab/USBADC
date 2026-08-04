@@ -16,7 +16,9 @@ Le USBADC est un petit PCB qui implémente plusieurs fonctionnalités:
 ### Programmation
 Pour envoyer un programme sur le micro-contrôlleur, il y a le port USB ainsi qu'un port SWD près du connecteur USB (header 6 pins).
 Pour le flasher par USB, il faut utiliser le périphérique DFU (Download Firmware Upgrade) qu'expose le bootloader to STM32. Par contre, je ne sais pas pourquoi, je n'ai pas été capable de le faire fonctionner plus qu'une seule fois.
+
 Pour le flasher par SWD, il faut un STlink. J'ai utilisé un [STlink-V3MINIE](https://www.st.com/en/development-tools/stlink-v3minie.html) auquel j'avais accès, il serait peut-être pertinent de s'en achter un. J'ai aussi utilisé [stlink-tools](https://github.com/stlink-org/stlink) pour envoyer le programme. Il faut brancher:
+
 | stlink | PCB   |
 |:------:|:-----:|
 | VCC    | VDD1  |
@@ -24,7 +26,6 @@ Pour le flasher par SWD, il faut un STlink. J'ai utilisé un [STlink-V3MINIE](ht
 | GND    | GND   |
 | TMS    | SWDIO |
 | RST    | NRST  |
-|--------|-------|
 
 
 ### USB
@@ -81,10 +82,15 @@ Un packet est une liste d'octets qui représente une commande ou une réponse. L
 | `8+N..11+N` | CRC         | `u32`     | Packet checksum using CRC32.             |
 
 Le champs `Magic` permet d'identifier le début d'un paquet. `0xAA55AA55` a été choisi car c'est une séquence qui a peu de chance d'arriver avec du bruit ou dans des données, aussi, en binaire, les bits de 0xAA et 0x55 alternent et ça permet de reconnaitre à l'oeil le début de la séquence.
+
 Le champs `ID` permet à l'USBADC de spécifier à quel paquet il répond en spécifiant l'ID du message qu'il a reçu dans sa réponse. Cela permet de répondre aux paquets dans un ordre différent de celui dans lequel ils ont été reçues si besoin.
+
 Le champs `Type` est le type du message (ping, read_adc, write_pin, reboot, ...) et permet de spécifier comment interpréter les données,
+
 Le champs `Data Length` est la longeur du champs `Data` en octets
+
 Le champs `Data` est les données associées au `Type` choisi.
+
 Le champs `CRC` (Cyclical Redundancy Checksum) sert à vérifier l'intégrité des données reçues. Lors de la réception d'un paquet, on calcule le checksum de tous les octets précédents. Si le checksum est identique à celui reçue, on peut être confiant qu'il n'y a pas eu d'erreur de transmission.
 
 Le protocole est ses fonctions de sérialization/désérialization sont spécifiées dans `firmware/USBX/App/protocol.h` et `firmware/USBX/App/protocol.c`.
