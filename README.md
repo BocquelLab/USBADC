@@ -49,7 +49,7 @@ La communication USB est faites avec un `STM32U073K8U6`, un micro-contrôlleur p
 Les bucks et boosts ont été générées avec l'outil [WEBENCH](https://webench.ti.com/power-designer/switching-regulator?powerSupply=0) de Texas Instrument pour être sûr que les circuits fonctionnent, jusqu'à maintenant, il n'y a eu aucuns problèmes.
 
 ### Sécurité
-Pour la génération du 28V, il y a ~28 watts qui transitent dans cette partie du circuit. Il y a une fuse 4 ampères `F2` à l'entrée 12V du circuit et une fuse 1.5 ampères `F1` à la sortie 28V. De plus, il y a une diode schottky à la sortie 28V pour éviter d'envoyer des pics de tensions à l'amplificateur. Il y a aussi des condensateurs de capacitance équivalent 110µF pour lisser la tension entrante dans l'amplificateur.
+Pour la génération du 28V, il y a ~28 watts qui transitent dans cette partie du circuit. Il y a une fuse 4 ampères `F2` à l'entrée 12V du circuit et une fuse 1.5 ampères `F1` à la sortie 28V. De plus, il y a une diode schottky à la sortie 28V pour éviter d'envoyer des pics de tensions à l'amplificateur. Il y a aussi des condensateurs de capacitance équivalente 110µF pour lisser la tension entrante dans l'amplificateur.
 
 Il y a des points de tests un peu partout sur le PCB pour être capable de débugger plus facilement si il arrive un problème.
 
