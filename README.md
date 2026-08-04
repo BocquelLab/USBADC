@@ -11,6 +11,7 @@ Le USBADC est un petit PCB qui implémente plusieurs fonctionnalités:
 + LED de statut du PCB, `D2` clignote lorsque le micro-contrôlleur n'a pas d'erreurs, et 4 autres LEDs indiquent si les générateurs de tensions fonctionnent (3.3V, 5V, 12V, 28V)
 
 ## Hardware
+KiCad 10.0 a été utilisé pour la conception du schématique et du PCB.
 
 ### Composantes
 ![USBADC](images/USBADC.png)
@@ -76,6 +77,8 @@ make -j4; st-flash erase; st-flash write build/USBADC.bin 0x08000000
 ```
 pour compiler et puis envoyer le programme sur le microcontrôlleur. Je ne suis pas certain que les `Makefile` sont supportés dans `STM32CubeIDE` (IDE de développement pour un STM32 installée sur l'ordinateur du laboratoire), je vais essayer de regarder ça pour que ça compile sur l'ordi du labo.
 
+J'ai utilisé la "Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203". Tout fonctionne avec celle là, il n'y a surement pas de soucis à prendre une autre version.
+
 ### Débuggage
 Pour débugger, `STM32CubeIDE` et `stlink-tools` permettent d'ouvrir une session `gdb` et d'explorer la mémoire du microcontrolleur. Avec `stlink-tools`, je roulais dans un terminal `st-util` et dans l'autre `gdb build/USBADC.elf`, puis dans la session gdb `target remote localhost:4242`.
 
@@ -131,4 +134,6 @@ Sur tous les messages, le client peut répondre avec `RESPONSE_ERROR` et spécif
 
 
 ## Software
+Python 3.11 a été utilisé.
+
 Dans `software/USBADC.py`, il y a la classe `USBADC` qui permet de communiquer avec le périphérique. Il est nécessaire d'installer `pyserial` pour être capable de communiquer.
