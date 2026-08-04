@@ -21,11 +21,11 @@
 // | Bytes       | Name        | Type             | Description                              |
 // +-------------+-------------+------------------+------------------------------------------+
 // | 0-3         | Magic       | u8[4]            | 0xAA 0x55 0xAA 0x55                      |
-// | 7-8         | ID          | u16              | Request/response identifier.             |
-// | 9           | Type        | u8               | Message type.                            |
-// | 10          | Data Length | u8               | Bytes following this field.              |
-// | 11..10+N    | Data        | u8[]             | Type-specific payload.                   |
-// | 11+N..14+N  | CRC         | u32              | Packet checksum using CRC32.             |
+// | 4-5         | ID          | u16              | Request/response identifier.             |
+// | 6           | Type        | u8               | Message type.                            |
+// | 7           | Data Length | u8               | Bytes following this field.              |
+// | 8..7+N      | Data        | u8[]             | Type-specific payload.                   |
+// | 8+N..11+N   | CRC         | u32              | Packet checksum using CRC32.             |
 // +-------------+-------------+------------------+------------------------------------------+
 
 enum {

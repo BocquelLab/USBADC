@@ -3,6 +3,7 @@ from enum import Enum
 import zlib
 import struct
 import random
+from threading import Thread
 
 import serial
 import serial.tools.list_ports
@@ -10,6 +11,7 @@ import serial.tools.list_ports
 
 class USBADC:
     magic_bytes = b"\xAA\x55\xAA\x55"
+    minimum_packet_length = 4 + 2 + 1 + 1 + 4 # Magic bytes + message id + type + length + crc32
     class Command(Enum):
         # Server requests to client
         class Request(Enum):
@@ -36,10 +38,48 @@ class USBADC:
         self.connection = USBADC._get_connection()
         self.next_message_id = 0
 
+        self.read_loop_thread = Thread(target=self.read_loop, daemon=True)
+        self.read_loop_thread.start()
+
+    def read_loop(self):
+        all_bytes = b""
+        while True:
+            # TODO: There might be a way to read in bulk, maybe the Serial abstraction
+            # doesn't expose it though.
+            all_bytes += self.connection.read(1)
+
+
+            # TODO: Avoid doing this at each byte read because it's expensive
+            if self.magic_bytes not in all_bytes:
+                continue
+
+            # Skip the bytes that aren't part of the magic bytes
+            all_bytes = all_bytes[all_bytes.index(self.magic_bytes):]
+
+            # Ensure the remaining of the packet is long enough
+            if len(all_bytes) < self.minimum_packet_length:
+                continue
+
+            message_id = (all_bytes[4] << 8) + (all_bytes[5])
+
+            type = all_bytes[6]
+
+            data_length = all_bytes[7]
+            if len(all_bytes) < self.minimum_packet_length + data_length:
+                continue
+
+            data = all_bytes[8:8 + data_length]
+            checksum = all_bytes[8 + data_length : 8 + 4 + data_length]
+
+            # Chop the read bytes for the rest all bytes
+            all_bytes = all_bytes[8 + 4 + data_length:]
+
+            print(message_id, type, data.hex(), checksum.hex())
+
+
     @staticmethod
     def _get_connection() -> serial.Serial:
         usbadcs = list(serial.tools.list_ports.grep("USBADC"))
-        print(usbadcs)
         if usbadcs == []:
             raise FileNotFoundError("Aucun USBADC n'est branché")
         else:
@@ -80,7 +120,6 @@ class USBADC:
         """
         Returns the voltage on the given ADC channel
         """
-        print(channel.value)
         self._send_command(self.Command.Request.READ_ADC, channel.value.to_bytes(1))
         # TODO: Return read value
 

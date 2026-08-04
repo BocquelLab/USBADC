@@ -1,13 +1,14 @@
+from threading import Thread
+import time
+
 from USBADC import USBADC
 
-usbadc = USBADC()
-usbadc.write_pin("GPIOB", 0, False)
-usbadc.reboot()
 
 usbadc = USBADC()
 usbadc.write_pin("GPIOB", 0, False)
-usbadc.disconnect()
+usbadc.write_pin("GPIOB", 0, False)
+usbadc.write_pin("GPIOB", 0, False)
+usbadc.write_pin("GPIOB", 0, False)
+usbadc.read_adc(USBADC.ADC_Channel.USB_SENSE)
 
-while True:
-    data = usbadc.connection.read_until(b"\r\n")
-    print(data)
+time.sleep(10)

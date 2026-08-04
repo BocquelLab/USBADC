@@ -196,8 +196,10 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
   }
 }
 
-#define log_current_position {                                                        \
-      sleep_ms(100);                                                                  \
+// This is useful to debug without a debugger,
+// the magic bytes in the protocol ensure that 
+// this doesn't corrupt actual packets
+#define log_current_position() do {                                                   \
       struct String string = {                                                        \
         .ptr = malloc(sizeof(char) * 128),                                            \
         .len = 128,                                                                   \
@@ -210,11 +212,10 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
           free(string.ptr);                                                           \
         }                                                                             \
       }                                                                               \
-      sleep_ms(100);                                                                  \
-}                                                                                     \
+} while(0)
 
 static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
-  log_current_position
+  log_current_position();
   struct USBADC_PROTOCOL_PACKET out_packet = {
     .id = packet.id,
   };
@@ -224,7 +225,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
   // TODO: Check that packet.length has the right size to prevent accessing unknown memory
   switch (packet.type) {
     case USBADC_PROTOCOL_REQUEST_PING: {
-        log_current_position
+        log_current_position();
         struct USBADC_PROTOCOL_REQUEST_PING in_data = {0};
 
         for (uint8_t i = 0 ; i < 4 ; i++) {
@@ -244,7 +245,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
       break;
 
     case USBADC_PROTOCOL_REQUEST_READ_ADC: {
-        log_current_position
+        log_current_position();
 
         struct USBADC_PROTOCOL_REQUEST_READ_ADC in_data = {0};
         in_data.adc_channel = packet.data[0];
@@ -294,7 +295,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
       break;
 
     case USBADC_PROTOCOL_REQUEST_WRITE_PIN: {
-        log_current_position
+        log_current_position();
         struct USBADC_PROTOCOL_REQUEST_WRITE_PIN in_data = {0};
         in_data.pin = (((uint16_t) packet.data[0]) << 8) | packet.data[1];
         in_data.gpio = packet.data[2];
@@ -309,7 +310,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
             gpio = GPIOB;
             break;
           default: {
-            log_current_position
+            log_current_position();
             struct USBADC_PROTOCOL_RESPONSE_ERROR out_data = {
               .reason = USBADC_PROTOCOL_RESPONSE_ERROR_REASON_NOT_AVAILABLE,
             };
@@ -329,13 +330,13 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
       }
 
     case USBADC_PROTOCOL_REQUEST_REBOOT: {
-        log_current_position
+        log_current_position();
         NVIC_SystemReset();
       }
       break;
 
     case USBADC_PROTOCOL_REQUEST_VERSION: {
-        log_current_position
+        log_current_position();
         struct USBADC_PROTOCOL_RESPONSE_VERSION out_data = {0};
         out_data.major = USBADC_PROTOCOL_VERSION_MAJOR;
         out_data.minor = USBADC_PROTOCOL_VERSION_MINOR;
@@ -350,13 +351,13 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
       break;
 
     default:
-      log_current_position
+      log_current_position();
       // Unreachable
       break;
   }
 
   send_packet_to_write_thread:
-  log_current_position
+  log_current_position();
   struct String string = {
     .ptr = malloc(sizeof(char) * out_len),
     .len = out_len,
@@ -371,7 +372,7 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
   }
 
   free(out_bytes);
-  log_current_position
+  log_current_position();
 }
 
 VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
@@ -391,11 +392,11 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
     if (ux_device_class_cdc_acm_read(cdc_acm, (UCHAR *) free_space_ptr, length_remaining, &length_read) != UX_SUCCESS) continue;
     vector.length += length_read;
 
-    log_current_position;
+    log_current_position();
 
     bool keep_decoding_packets = true;
     while (keep_decoding_packets && vector.length > 0) {
-      log_current_position;
+      log_current_position();
       struct USBADC_PROTOCOL_PACKET packet;
       int32_t decoded_length = usbadc_protocol_decode_packet(vector.data, vector.length, &packet);
       char buffer[128];
@@ -433,14 +434,14 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
           }
 
         default:
-          log_current_position;
+          log_current_position();
           handle_received_packet(packet);
           byte_vector_delete_first_n_chars(&vector, decoded_length);
           break;
       }
     }
 
-    log_current_position;
+    log_current_position();
   }
 }
 
