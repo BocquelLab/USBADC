@@ -1,5 +1,4 @@
 # USBADC
-
 Le USBADC est un petit PCB qui implémente plusieurs fonctionnalités:
 + Lecture de la tension de sortie du power meter
 + Lecture de la température ambiante
@@ -12,6 +11,21 @@ Le USBADC est un petit PCB qui implémente plusieurs fonctionnalités:
 + LED de statut du PCB, `D2` clignote lorsque le micro-contrôlleur n'a pas d'erreurs, et 4 autres LEDs indiquent si les générateurs de tensions fonctionnent (3.3V, 5V, 12V, 28V)
 
 ## Hardware
+
+### Composantes
+![USBADC](images/USBADC.png)
+1. Entré 12V 3A
+2. Sortie 28V 1A
+3. Boost 12V -> 28V
+4. Buck 12V -> 5V
+5. Régulateur 5V -> 3.3V
+6. STM32U073K8U6
+7. Connecteur USB A femelle
+8. Connecteur SWD (Single Wire Debug)
+9. Sorties open-drain et low power
+10. Sortie PWM pour fan
+11. Sortie pour alimentation du powermeter et entrée de la température
+12. Entrée pour lecture de la puissance RF
 
 ### Programmation
 Pour envoyer un programme sur le micro-contrôlleur, il y a le port USB ainsi qu'un port SWD près du connecteur USB (header 6 pins).
