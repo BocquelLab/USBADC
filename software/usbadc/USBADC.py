@@ -9,9 +9,6 @@ from .packets import Packet, RequestPing, RequestReadADC, RequestReboot, Request
 import serial
 import serial.tools.list_ports
 
-class ChecksumDiffers(Exception):
-    pass
-
 class USBADC:
     def __init__(self):
         self.connection = USBADC._get_connection()
@@ -87,7 +84,7 @@ class USBADC:
 
                 future: Future = self.futures.pop(message_id)
                 if computed_checksum != expected_checksum:
-                    future.set_exception(ChecksumDiffers("Received and computed checksums are different"))
+                    future.set_exception(ValueError("Received and computed checksums are different"))
                 else:
                     future.set_result(packet)
 

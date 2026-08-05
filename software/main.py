@@ -7,9 +7,6 @@ from usbadc.packets import ADCChannel
 usbadc = USBADC()
 usbadc.ping()
 usbadc.write_pin("GPIOB", 0, False)
-usbadc.write_pin("GPIOB", 0, False)
-usbadc.write_pin("GPIOB", 0, False)
-usbadc.write_pin("GPIOB", 0, False)
 
 while True:
     power_meter = usbadc.read_adc(ADCChannel.POWER_METER)
