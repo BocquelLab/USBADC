@@ -3,7 +3,8 @@ from enum import Enum
 import zlib
 import struct
 import random
-from threading import Thread
+from threading import Thread, Lock
+from concurrent.futures import CancelledError, Future
 
 import serial
 import serial.tools.list_ports
@@ -37,6 +38,9 @@ class USBADC:
     def __init__(self):
         self.connection = USBADC._get_connection()
         self.next_message_id = 0
+
+        self.futures = {}
+        self.futures_lock = Lock()
 
         self.read_loop_thread = Thread(target=self.read_loop, daemon=True)
         self.read_loop_thread.start()
@@ -79,6 +83,10 @@ class USBADC:
 
             print(message_id, message_type, data.hex(), checksum.hex())
 
+            with self.futures_lock:
+                future = self.futures.pop(message_id)
+                future.set_result((message_type, data))
+
 
     @staticmethod
     def _get_connection() -> serial.Serial:
@@ -90,13 +98,18 @@ class USBADC:
 
         return serial.Serial(usbadc.device, baudrate=115200)
 
-    def _get_message_id_bytes(self) -> bytes:
-        data = self.next_message_id.to_bytes(2, "big")
+    def _get_message_id(self) -> int:
+        id = self.next_message_id
+
+        with self.futures_lock:
+            if self.next_message_id in self.futures:
+                future = self.futures.pop(self.next_message_id)
+                future.set_exception(CancelledError)
 
         self.next_message_id += 1
         self.next_message_id %= 1 << 16;
 
-        return data
+        return id
 
     def _send_data(self, data: bytes):
         checksum = zlib.crc32(data).to_bytes(4, "big")
@@ -104,13 +117,22 @@ class USBADC:
         self.connection.write(data + checksum)
 
     def _send_command(self, command: Command.Request, data: bytes = b""):
+
+        future = Future()
+
+        message_id = self._get_message_id()
+        with self.futures_lock:
+            self.futures[message_id] = future
+
         self._send_data(
             self.magic_bytes +
-            self._get_message_id_bytes() +
+            message_id.to_bytes(2, "big") +
             command.value.to_bytes(1) +
             len(data).to_bytes(1) +
             data
         )
+
+        return future.result(timeout=1)
 
     def disconnect(self):
         self.connection.close()

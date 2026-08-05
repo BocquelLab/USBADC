@@ -272,11 +272,11 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
             out_data.data = (uint16_t) pin_a3_val;
             break;
           default: {
-            struct USBADC_PROTOCOL_RESPONSE_ERROR out_data = {
-              .reason = USBADC_PROTOCOL_RESPONSE_ERROR_REASON_NOT_AVAILABLE,
+            struct USBADC_PROTOCOL_RESPONSE_STATUS out_data = {
+              .reason = USBADC_PROTOCOL_RESPONSE_STATUS_REASON_NOT_AVAILABLE,
             };
 
-            out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
+            out_packet.type = USBADC_PROTOCOL_RESPONSE_STATUS;
             out_packet.data = (char *) &out_data;
             out_packet.length = sizeof(out_data);
 
@@ -311,11 +311,11 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
             break;
           default: {
             log_current_position();
-            struct USBADC_PROTOCOL_RESPONSE_ERROR out_data = {
-              .reason = USBADC_PROTOCOL_RESPONSE_ERROR_REASON_NOT_AVAILABLE,
+            struct USBADC_PROTOCOL_RESPONSE_STATUS out_data = {
+              .reason = USBADC_PROTOCOL_RESPONSE_STATUS_REASON_NOT_AVAILABLE,
             };
 
-            out_packet.type = USBADC_PROTOCOL_RESPONSE_VERSION;
+            out_packet.type = USBADC_PROTOCOL_RESPONSE_STATUS;
             out_packet.data = (char *) &out_data;
             out_packet.length = sizeof(out_data);
 
@@ -326,11 +326,31 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
 
         // TODO: Support analog outputs?
         HAL_GPIO_WritePin(gpio, in_data.pin, in_data.value);
+
+        struct USBADC_PROTOCOL_RESPONSE_STATUS out_data = {
+          .reason = USBADC_PROTOCOL_RESPONSE_STATUS_REASON_OK,
+        };
+
+        out_packet.type = USBADC_PROTOCOL_RESPONSE_STATUS;
+        out_packet.data = (char *) &out_data;
+        out_packet.length = sizeof(out_data);
+
+        out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
         break;
       }
 
     case USBADC_PROTOCOL_REQUEST_REBOOT: {
         log_current_position();
+        struct USBADC_PROTOCOL_RESPONSE_STATUS out_data = {
+          .reason = USBADC_PROTOCOL_RESPONSE_STATUS_REASON_OK,
+        };
+
+        out_packet.type = USBADC_PROTOCOL_RESPONSE_STATUS;
+        out_packet.data = (char *) &out_data;
+        out_packet.length = sizeof(out_data);
+
+        out_len = usbadc_protocol_encode_packet(out_packet, &out_bytes);
+
         NVIC_SystemReset();
       }
       break;

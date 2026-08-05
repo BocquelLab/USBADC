@@ -119,13 +119,13 @@ Sur le message `REQUEST_PING`, le client répond avec le message `RESPONSE_PONG`
 
 Sur le message `REQUEST_READ_ADC`, le client répond avec `RESPONSE_READ_ADC` la tension lue sur le channel correspondant.
 
-Sur le mesasge `REQUEST_WRITE_PIN`, le client ne répond pas et sort l'état demandée sur la pin demandée.
+Sur le mesasge `REQUEST_WRITE_PIN`, le client répond avec `RESPONSE_STATUS` et sort l'état demandée sur la pin demandée.
 
-Sur le mesasge `REQUEST_REBOOT`, le client ne répond pas et redémarre (la communication sera coupée).
+Sur le mesasge `REQUEST_REBOOT`, le client répond avec `RESPONSE_STATUS` et redémarre (la communication sera coupée).
 
 Sur le message `REQUEST_VERSION`, le client répond avec la version du protocole qu'il utilise. Cela permet de s'assurer que le client et le serveur sont sur la même version et que toutes les fonctionnalitées sont fonctionelles et supportées des deux côtés.
 
-Sur tous les messages, le client peut répondre avec `RESPONSE_ERROR` et spécifier la raison (`enum USBADC_PROTOCOL_RESPONSE_ERROR_REASONS`).
+Sur tous les messages, le client peut répondre avec `RESPONSE_STATUS` et spécifier la raison (`enum USBADC_PROTOCOL_RESPONS_STATUS_REASONS`).
 
 ### Fichiers (`firmware/USBX/App/`)
 + `app_usbx_device.c`: Point d'entrée `ThreadX` qui initialise les tâches et le périphérique USB et les files.
