@@ -58,17 +58,22 @@ Il y a des points de tests un peu partout sur le PCB pour être capable de débu
 Le PCB possède deux boutons, `BOOT0` et `Reset`.
 
 `Reset` permet de redémarrer le microcontrôlleur, pratique pour débugger ou pour le redémarrer si il ne répond pas.
+
 `BOOT0` permet de signaler au bootloader du microcontrôlleur que l'on désire flasher un programme pour qu'il expose la classe `DFU`. Il faut simplement tenir le bouton en appuyant sur `Reset`. Comme mentionné plus tôt, je ne comprends pas pourquoi je n'arrive pas à faire fonctionner cette option.
 
 ### Corrections à apporter sur une version future
 Les connecteurs pour le ventilateur et le power meter overlap et ne peuvent donc pas être soudés directement sur le PCB.
+
 Trouver pourquoi la programmation par DFU ne fonctionne pas et régler le problème.
+
 Il m'est arrivé une fois que le board ne voulait pas démarrer, j'ai trouvé qu'il s'exposait comme périphérique DFU au démarage au lieu de CDC ACM et je n'étais pas capable de le faire booter plus loin que le bootloader. Je l'ai reflashé et ça a fonctionné, je n'ai pas revu ça depuis.
+
 Mettre un connecteur USB mâle à la place d'un connecteur USB femelle car les connecteurs femelles sont réservés aux hôtes USB et les mâles aux périphériques.
 
 ## Firmware
 La grande majorité du code dans `firmware/` a été générée avec `STM32CubeMX`, un outil pour initialiser des projets pour des STM32, ils s'occupent d'initialiser toutes les périphériques, vérifier que la configuration de clocks choisie est correcte, etc.
-h
+
+Les paramètres pour CubeMX sont dans le fichier `firmware/USBADC.ioc`.
 
 Le coeur de la logique a été implémentée dans `firmware/USBX/App/` en C.
 
