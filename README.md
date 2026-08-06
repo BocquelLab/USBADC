@@ -70,6 +70,8 @@ Il m'est arrivé une fois que le board ne voulait pas démarrer, j'ai trouvé qu
 
 Mettre un connecteur USB mâle à la place d'un connecteur USB femelle car les connecteurs femelles sont réservés aux hôtes USB et les mâles aux périphériques.
 
+Monitorer la tension du 28V avec le STM32 pour pouvoir voir son statut par USB au lieu de devoir regarder la LED. Sur la version actuelle, il est possible de mettre un diviseur de tension sur le pad 28V et rentrer ça dans la pin A3.
+
 ## Firmware
 La grande majorité du code dans `firmware/` a été générée avec `STM32CubeMX`, un outil pour initialiser des projets pour des STM32, ils s'occupent d'initialiser toutes les périphériques, vérifier que la configuration de clocks choisie est correcte, etc.
 
