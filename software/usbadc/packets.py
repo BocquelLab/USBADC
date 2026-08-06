@@ -225,3 +225,11 @@ class ResponseVersion(Packet):
     def deserialize(cls, data: bytes) -> Self:
         fields = struct.unpack(">BBB", data)
         return RequestVersion(*fields)
+
+    def is_up_to_date(self):
+        expected_version_major = 0
+        expected_version_minor = 0
+        expected_version_patch = 1
+        return (self.version_minajor == expected_version_major and 
+                self.version_minor == expected_version_minor and
+                self.version_patch == expected_version_patch)

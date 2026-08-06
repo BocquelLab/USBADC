@@ -26,15 +26,18 @@ class USBADC:
 
 
     def write_loop(self):
-        all_data = b""
+        all_bytes = b""
         while True:
-            while len(all_data) == 0 or not self.write_queue.empty():
-                all_data += self.write_queue.get()
+            while len(all_bytes) == 0 or not self.write_queue.empty():
+                all_bytes += self.write_queue.get()
+
 
             amount_written = 0
-            while amount_written != len(all_data):
-                amount_written += self.connection.write(all_data[amount_written:]) or 0
-            all_data = b""
+            while amount_written != len(all_bytes):
+                amount_written += self.connection.write(all_bytes[amount_written:]) or 0
+            self.connection.flush()
+            # print(f"Send: {all_bytes}")
+            all_bytes = b""
 
 
     def read_loop(self):
@@ -44,8 +47,11 @@ class USBADC:
             # doesn't expose it though.
             all_bytes += self.connection.read(1)
 
+            # print(f"Received: {all_bytes}")
+
             # TODO: Avoid doing this at each byte read because it's expensive
             if magic_bytes not in all_bytes:
+                # all_bytes = all_bytes[-4:]
                 continue
 
             # Skip the bytes that aren't part of the magic bytes
@@ -74,7 +80,8 @@ class USBADC:
             expected_checksum = all_bytes[8 + data_length : 8 + 4 + data_length]
 
             # Chop the read bytes for the rest all bytes
-            all_bytes = all_bytes[8 + 4 + data_length:]
+            # print(all_bytes)
+            all_bytes = all_bytes[4:]
 
             packet = packet_class_from_message_type(message_type).deserialize(data)
 
