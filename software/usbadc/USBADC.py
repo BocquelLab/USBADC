@@ -3,6 +3,7 @@ from zlib import crc32
 import random
 from threading import Thread, Lock
 from concurrent.futures import CancelledError, Future
+import platform
 from queue import Queue
 from .packets import Packet, RequestPing, RequestReadADC, RequestReboot, RequestVersion, RequestWritePin, ResponsePong, ResponseReadADC, ResponseStatus, ResponseVersion, ADCChannel, magic_bytes, minimum_packet_length, packet_class_from_message_type
 
@@ -10,6 +11,9 @@ import serial
 import serial.tools.list_ports
 
 class USBADC:
+    USB_VID = 0xFFFF
+    USB_PID = 0x0001
+
     def __init__(self):
         self.connection = USBADC._get_connection()
         self.next_message_id = 0
@@ -98,13 +102,22 @@ class USBADC:
 
     @staticmethod
     def _get_connection() -> serial.Serial:
-        usbadcs = list(serial.tools.list_ports.grep("USBADC"))
-        if usbadcs == []:
-            raise FileNotFoundError("Aucun USBADC n'est branché")
-        else:
-            usbadc = usbadcs[0]
+        match platform.system():
+            # Windows requires all devices to have a *.INF file describing them.
+            # Since we do not have one, Windows replaces the manufacturer and product strings
+            # with it's own and we can't be sure what device is behind it.
+            # TODO: Initiate a ping and check if it responds with a pong.
+            case "Windows":
+                for port in serial.tools.list_ports.comports():
+                    if port.vid != USBADC.USB_VID or port.pid != USBADC.USB_PID:
+                        continue
+                    return serial.Serial(port.device, baudrate=115200)
 
-        return serial.Serial(usbadc.device, baudrate=115200)
+            case _:
+                for port in serial.tools.list_ports.grep("USBADC"):
+                    return serial.Serial(port.device, baudrate=115200)
+
+        raise FileNotFoundError("Aucun USBADC n'est branché")
 
 
     def _get_message_id(self) -> int:
