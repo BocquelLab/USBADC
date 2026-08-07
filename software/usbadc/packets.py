@@ -26,9 +26,9 @@ def packet_class_from_message_type(message_type: int) -> type:
             return ResponsePong
         case 0x81:
             return ResponseReadADC
-        case 0x83:
+        case 0x82:
             return ResponseStatus
-        case 0x84:
+        case 0x83:
             return ResponseVersion
         case _:
             raise ValueError(f"No Packet associated with type {message_type}")

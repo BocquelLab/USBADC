@@ -197,8 +197,17 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
 }
 
 // This is useful to debug without a debugger,
-// the magic bytes in the protocol ensure that 
+// the magic bytes in the protocol ensure that
 // this doesn't corrupt actual packets
+#define ENABLE_LOGGING 0
+#if ENABLE_LOGGING == 1
+// TODO: Find out why enabling this corrupts received packets sometimes.
+// I think it might be related to heap exhaustion, but I'm not sure.
+// I have witness received packets getting mingled into the
+// debug statement multiple times after a crash. On a failure, the device would
+// be waiting for ~100 bytes to complete a packet. I believe the `length` field of the
+// packet got corrupted by the code below somehow.
+//
 #define log_current_position() do {                                                   \
       struct String string = {                                                        \
         .ptr = malloc(sizeof(char) * 128),                                            \
@@ -213,6 +222,11 @@ VOID usbx_cdc_acm_write_thread_entry(ULONG thread_input)
         }                                                                             \
       }                                                                               \
 } while(0)
+
+#else // ENABLE_LOGGING
+// Define the macro to not expand to anything
+#define log_current_position()
+#endif // ENABLE_LOGGING
 
 static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
   log_current_position();
