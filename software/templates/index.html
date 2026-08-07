@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Monitor</title>
+    <script src="/static/js/chart.umd.min.js"></script>
+    <style>
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(6, 80px);
+            gap: 5px;
+        }
+
+        .pin {
+            padding: 8px;
+        }
+
+        .pin.on {
+            background-color: lightgreen;
+        }
+
+        canvas {
+            max-width: 900px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live monitor</h1>
+
+    <h2>Power</h2>
+    <canvas id="power_chart"></canvas>
+
+    <h2>Temperature</h2>
+    <canvas id="temperature_chart"></canvas>
+
+    <h2>PA3 voltage</h2>
+    <canvas id="pin_a3_chart"></canvas>
+
+    <h2>Pins</h2>
+    <div class="buttons" id="pin_buttons"></div>
+
+    <button onclick="clearGraphs()">Clear graphs</button>
+
+    <script>
+        const startTime = performance.now();
+
+        function createChart(element, label, unit) {
+            return new Chart(element, {
+                type: "line",
+                data: {
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    animation: false,
+                    scales: {
+                        x: {
+                            type: "linear",
+                            title: {
+                                display: true,
+                                text: "Time (s)"
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: unit
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const powerChart = createChart(
+            document.getElementById("power_chart"),
+            "Power",
+            "Power (W)"
+        );
+
+        const temperatureChart = createChart(
+            document.getElementById("temperature_chart"),
+            "Temperature",
+            "Temperature (°C)"
+        );
+
+        const pinA3Chart = createChart(
+            document.getElementById("pin_a3_chart"),
+            "PA3",
+            "Voltage (V)"
+        );
+
+
+        function addPoint(chart, value) {
+            chart.data.datasets[0].data.push({
+                x: (performance.now() - startTime) / 1000,
+                y: value
+            });
+        }
+
+
+        async function update() {
+            const power = await fetch("/data/power_meter")
+                .then(r => r.json());
+
+            const temperature = await fetch("/data/temperature")
+                .then(r => r.json());
+
+            const pinA3 = await fetch("/data/pin_a3")
+                .then(r => r.json());
+
+
+            addPoint(powerChart, power.value);
+            addPoint(temperatureChart, temperature.value);
+            addPoint(pinA3Chart, pinA3.value);
+
+            powerChart.update();
+            temperatureChart.update();
+            pinA3Chart.update();
+        }
+
+
+        function clearGraphs() {
+            for (const chart of [
+                powerChart,
+                temperatureChart,
+                pinA3Chart
+            ]) {
+                chart.data.datasets[0].data = [];
+                chart.update();
+            }
+        }
+
+
+        const pins = [
+            "PA3", "PA4", "PA5", "PA6", "PA7", "PA8",
+            "PB1", "PB3", "PB4", "PB5", "PB6", "PB7"
+        ];
+
+        const buttonContainer = document.getElementById("pin_buttons");
+
+        for (const pin of pins) {
+            let state = false;
+
+            const button = document.createElement("button");
+            button.textContent = pin;
+            button.className = "pin";
+
+            button.onclick = async () => {
+                state = !state;
+                button.classList.toggle("on", state);
+
+                await fetch("/set_pin/" + pin + "/" + state);
+            };
+
+            buttonContainer.appendChild(button);
+        }
+
+
+        setInterval(update, 100);
+        update();
+    </script>
+</body>
+
+</html>

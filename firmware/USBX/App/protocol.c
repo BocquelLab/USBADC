@@ -3,7 +3,7 @@
 #include <stm32u0xx_hal.h>
 #include <stdlib.h>
 
-// TODO: Check how to use the hardware CRC32 calculator in byte mode instead of using a table
+// TODO: Check how to use the hardware CRC32 calculator in byte mode instead of using this
 static uint32_t crc32(const void *data, size_t length)
 {
     const uint8_t *p = (const uint8_t *)data;
@@ -89,7 +89,7 @@ int32_t usbadc_protocol_decode_packet(char *data, uint32_t length, struct USBADC
   out_packet.data = ptr;
   ptr += out_packet.length;
 
-  const uint32_t checksum = crc32(data, length - 4);
+  const uint32_t checksum = crc32(data, BASE_PACKET_LENGTH + out_packet.length - 4);
 
   if ((uint8_t) (checksum >> 24) != (*(ptr++))) return USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM;
   if ((uint8_t) (checksum >> 16) != (*(ptr++))) return USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM;

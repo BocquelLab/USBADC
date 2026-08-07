@@ -398,8 +398,8 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
 VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);
-  static char buffer[2048];
-  byte_vector vector = byte_vector_init(buffer, 2048);
+  static char vector_buffer[2048];
+  byte_vector vector = byte_vector_init(vector_buffer, sizeof(vector_buffer));
 
   while (1)
   {
@@ -420,15 +420,15 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
       struct USBADC_PROTOCOL_PACKET packet;
       int32_t decoded_length = usbadc_protocol_decode_packet(vector.data, vector.length, &packet);
       char buffer[128];
-      int a = snprintf(buffer, 128, "%ld %ld\r\n", decoded_length, vector.length);
+      int len = snprintf(buffer, 128, "%ld %ld\r\n", decoded_length, vector.length);
 
       struct String string = {
-        .ptr = malloc(sizeof(char) * a),
-        .len = a,
+        .ptr = malloc(sizeof(char) * len),
+        .len = len,
       };
 
       if (string.ptr != NULL) {
-        memcpy(string.ptr, buffer, a);
+        memcpy(string.ptr, buffer, len);
 
         if (tx_queue_send(&ux_cdc_write_queue, &string, TX_NO_WAIT) != TX_SUCCESS) {
           free(string.ptr);
@@ -441,11 +441,11 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 
         case USBADC_PROTOCOL_DECODE_WRONG_MAGIC_BYTES: // The data doesn't start with the packet's magic bytes
         case USBADC_PROTOCOL_DECODE_WRONG_CHECKSUM: // Packet is corrupted, discard it
-          {
+          if (vector.length > 4) {
             const uint8_t magic_bytes[4] = {0xAA, 0x55, 0xAA, 0x55};
-            char *next_magic_bytes_ptr = memmem(vector.data + 1, vector.length, magic_bytes, 4);
+            char *next_magic_bytes_ptr = memmem(vector.data + 1, vector.length - 1, magic_bytes, 4);
             if (next_magic_bytes_ptr == NULL) {
-              byte_vector_delete_first_n_chars(&vector, vector.length);
+              byte_vector_delete_first_n_chars(&vector, vector.length - 4); // Keep 4 bytes because they might be the magic bytes of the next packet
               keep_decoding_packets = false;
             } else {
               byte_vector_delete_first_n_chars(&vector, next_magic_bytes_ptr - vector.data);
