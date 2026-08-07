@@ -338,7 +338,6 @@ static void handle_received_packet(struct USBADC_PROTOCOL_PACKET packet) {
           }
         }
 
-        // TODO: Support analog outputs?
         HAL_GPIO_WritePin(gpio, in_data.pin, in_data.value);
 
         struct USBADC_PROTOCOL_RESPONSE_STATUS out_data = {
@@ -491,7 +490,6 @@ VOID sample_adc_thread_entry(ULONG thread_input)
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLINGTIME_COMMON_1;
 
-  // TODO: Make this non-blocking
   while (1)
   {
     sleep_ms(100);
@@ -540,7 +538,6 @@ VOID sample_adc_thread_entry(ULONG thread_input)
   }
 }
 
-// TODO: Merge this into the ADC sampling thread to reduce complexity?
 VOID set_fan_pwm_thread_entry(ULONG thread_input)
 {
   UX_PARAMETER_NOT_USED(thread_input);

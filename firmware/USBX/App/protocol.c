@@ -3,7 +3,8 @@
 #include <stm32u0xx_hal.h>
 #include <stdlib.h>
 
-// TODO: Check how to use the hardware CRC32 calculator in byte mode instead of using this
+// TODO: Check how to use the hardware CRC32 calculator in byte mode 
+// instead of using this for a minor speedup
 static uint32_t crc32(const void *data, size_t length)
 {
     const uint8_t *p = (const uint8_t *)data;
