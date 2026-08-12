@@ -19,7 +19,6 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#define _GNU_SOURCE
 #include "ux_device_cdc_acm.h"
 
 /* Private includes ----------------------------------------------------------*/

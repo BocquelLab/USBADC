@@ -16,6 +16,7 @@
   *
   ******************************************************************************
   */
+#define _GNU_SOURCE
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __UX_DEVICE_CDC_ACM_H__
