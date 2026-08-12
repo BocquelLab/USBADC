@@ -19,10 +19,12 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#define _GNU_SOURCE
 #include "ux_device_cdc_acm.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 #include "main.h"
 #include "stm32u073xx.h"
 #include "stm32u0xx_hal_adc.h"
