@@ -20,7 +20,7 @@ KiCad 10.0 a été utilisé pour la conception du schématique et du PCB.
 3. Boost 12V -> 28V
 4. Buck 12V -> 5V
 5. Régulateur 5V -> 3.3V
-6. STM32U073K8U6
+6. Microcontrôlleur STM32U073K8U6
 7. Connecteur USB A femelle
 8. Connecteur SWD (Single Wire Debug)
 9. Sorties open-drain et low power
