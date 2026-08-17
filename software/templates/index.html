@@ -2,51 +2,281 @@
 <html>
 
 <head>
-    <title>Monitor</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>ADC Externe</title>
+
     <script src="/static/js/chart.umd.min.js"></script>
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 12px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .graphs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .graph {
+            position: relative;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 14px;
+        }
+
+        .graph-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .graph-header h2 {
+            margin: 0;
+        }
+
+        .graph-expand {
+            padding: 4px 8px;
+            border: 1px solid #aaa;
+            background: #f7f7f7;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .graph-expand:hover {
+            background: #eaeaea;
+        }
+
+        .graph canvas {
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        .graph.focused {
+            position: fixed;
+            z-index: 1000;
+            inset: 20px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #888;
+        }
+
+        .graph.focused canvas {
+            height: calc(100vh - 100px) !important;
+        }
+
+        .graph-overlay {
+            display: none;
+        }
+
+        .graph.focused .graph-overlay {
+            display: block;
+            position: fixed;
+            z-index: -1;
+            inset: 0;
+        }
+
+        .controls {
+            margin-top: 20px;
+            padding: 16px;
+            background: white;
+            border: 1px solid #ccc;
+        }
+
+        .controls p {
+            margin: 6px 0;
+            color: #444;
+            font-size: 14px;
+        }
+
         .buttons {
             display: grid;
-            grid-template-columns: repeat(6, 80px);
-            gap: 5px;
+            grid-template-columns: repeat(6, minmax(70px, 1fr));
+            gap: 6px;
+            margin-top: 14px;
+            max-width: 600px;
         }
 
         .pin {
-            padding: 8px;
+            min-height: 34px;
+            padding: 6px 10px;
+            border: 1px solid #aaa;
+            background: #f7f7f7;
+            cursor: pointer;
+        }
+
+        .pin:hover {
+            background: #eaeaea;
         }
 
         .pin.on {
-            background-color: lightgreen;
+            background-color: #d8f0d8;
+            border-color: #888;
         }
 
-        canvas {
-            max-width: 900px;
-            margin-bottom: 30px;
+        .actions {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #ddd;
+        }
+
+        .actions button {
+            padding: 7px 12px;
+            border: 1px solid #999;
+            background: #f7f7f7;
+            cursor: pointer;
+        }
+
+        .actions button:hover {
+            background: #eaeaea;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: 12px;
+            }
+
+            .graphs {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                grid-template-columns: repeat(4, minmax(70px, 1fr));
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>Live monitor</h1>
+    <div class="container">
+        <div class="graphs">
+            <section class="graph" id="power_graph">
+                <div class="graph-header">
+                    <h2>Puissance</h2>
+                    <button class="graph-expand" onclick="toggleFocus('power_graph')">
+                        Focus
+                    </button>
+                </div>
 
-    <h2>Power</h2>
-    <canvas id="power_chart"></canvas>
+                <div class="graph-overlay"></div>
+                <canvas id="power_chart"></canvas>
+            </section>
 
-    <h2>Temperature</h2>
-    <canvas id="temperature_chart"></canvas>
+            <section class="graph" id="temperature_graph">
+                <div class="graph-header">
+                    <h2>Température</h2>
+                    <button class="graph-expand" onclick="toggleFocus('temperature_graph')">
+                        Focus
+                    </button>
+                </div>
 
-    <h2>PA3 voltage</h2>
-    <canvas id="pin_a3_chart"></canvas>
+                <div class="graph-overlay"></div>
+                <canvas id="temperature_chart"></canvas>
+            </section>
 
-    <h2>Pins</h2>
-    <p> PA3 est une entrée d'ADC qui est par défaut sur le retour de vitesse du ventilateur</p>
-    <p> PA4 est une sortie PWM pour contrôller la vitesse du ventilateur</p>
-    <div class="buttons" id="pin_buttons"></div>
+            <section class="graph" id="pin_a3_graph">
+                <div class="graph-header">
+                    <h2>Tension PA3</h2>
+                    <button class="graph-expand" onclick="toggleFocus('pin_a3_graph')">
+                        Focus
+                    </button>
+                </div>
 
-    <button onclick="clearGraphs()">Clear graphs</button>
+                <div class="graph-overlay"></div>
+                <canvas id="pin_a3_chart"></canvas>
+            </section>
+
+        </div>
+
+        <section class="controls">
+            <h2>Pins</h2>
+            <p> PA3 est une entrée d'ADC qui est par défaut sur le retour de vitesse du ventilateur. </p>
+            <p> PA4 est une sortie PWM pour contrôller la vitesse du ventilateur. </p>
+            <div class="buttons" id="pin_buttons"></div>
+
+            <div class="actions">
+                <button onclick="clearGraphs()">Clear graphs</button>
+                <button onclick="exportCSV()">Exporter CSV</button>
+            </div>
+        </section>
+    </div>
 
     <script>
         const startTime = performance.now();
+        function exportCSV() {
+            const powerData = powerChart.data.datasets[0].data;
+            const temperatureData = temperatureChart.data.datasets[0].data;
+            const pinA3Data = pinA3Chart.data.datasets[0].data;
+            const maxLength = Math.max(powerData.length, temperatureData.length, pinA3Data.length);
+            const rows = [["Temps (s)", "Puissance (W)", "Température (°C)", "PA3 (V)"]];
+            for (let i = 0; i < maxLength; i++) {
+                rows.push([
+                    powerData[i]?.x ?? "",
+                    powerData[i]?.y ?? "",
+                    temperatureData[i]?.y ?? "",
+                    pinA3Data[i]?.y ?? ""]);
+            }
+            const csv = rows.map(row => row.join(",")).join("\r\n");
+            const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            const date = new Date();
+            const timestamp = date.getFullYear()
+                + "-"
+                + String(date.getMonth() + 1).padStart(2, "0")
+                + "-"
+                + String(date.getDate()).padStart(2, "0")
+                + "_"
+                + String(date.getHours()).padStart(2, "0")
+                + "-"
+                + String(date.getMinutes()).padStart(2, "0")
+                + "-"
+                + String(date.getSeconds()).padStart(2, "0");
+
+            link.download = "adc_externe_" + timestamp + ".csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
 
         function createChart(element, label, unit) {
             return new Chart(element, {
@@ -66,7 +296,7 @@
                             type: "linear",
                             title: {
                                 display: true,
-                                text: "Time (s)"
+                                text: "Temps (s)"
                             }
                         },
                         y: {
@@ -82,20 +312,20 @@
 
         const powerChart = createChart(
             document.getElementById("power_chart"),
-            "Power",
-            "Power (W)"
+            "Puissance",
+            "Puissance (W)"
         );
 
         const temperatureChart = createChart(
             document.getElementById("temperature_chart"),
-            "Temperature",
-            "Temperature (°C)"
+            "Température",
+            "Température (°C)"
         );
 
         const pinA3Chart = createChart(
             document.getElementById("pin_a3_chart"),
             "PA3",
-            "Voltage (V)"
+            "Tension (V)"
         );
 
 
@@ -140,6 +370,33 @@
         }
 
 
+        function toggleFocus(id) {
+            const graph = document.getElementById(id);
+            const focused = graph.classList.toggle("focused");
+
+            const button = graph.querySelector(".graph-expand");
+
+            if (focused) {
+                button.textContent = "Close";
+                document.body.style.overflow = "hidden";
+            } else {
+                button.textContent = "Focus";
+                document.body.style.overflow = "";
+            }
+
+            // Force Chart.js to recalculate dimensions.
+            setTimeout(() => {
+                for (const chart of [
+                    powerChart,
+                    temperatureChart,
+                    pinA3Chart
+                ]) {
+                    chart.resize();
+                }
+            }, 0);
+        }
+
+
         const pins = [
             " x ", " x ", "PA5", "PA6", "PA7", "PA8",
             "PB7", "PB6", "PB5", "PB4", "PB3", "PB1"
@@ -168,6 +425,7 @@
         setInterval(update, 300);
         update();
     </script>
+
 </body>
 
 </html>
