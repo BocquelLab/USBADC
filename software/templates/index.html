@@ -245,7 +245,7 @@
             const temperatureData = temperatureChart.data.datasets[0].data;
             const pinA3Data = pinA3Chart.data.datasets[0].data;
             const maxLength = Math.max(powerData.length, temperatureData.length, pinA3Data.length);
-            const rows = [["Temps (s)", "Puissance (W)", "Température (°C)", "PA3 (V)"]];
+            const rows = [["Temps (s)", "Puissance (dBm)", "Température (°C)", "PA3 (V)"]];
             for (let i = 0; i < maxLength; i++) {
                 rows.push([
                     powerData[i]?.x ?? "",
@@ -313,7 +313,7 @@
         const powerChart = createChart(
             document.getElementById("power_chart"),
             "Puissance",
-            "Puissance (W)"
+            "Puissance (dBm)"
         );
 
         const temperatureChart = createChart(

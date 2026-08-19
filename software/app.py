@@ -1,6 +1,8 @@
 from flask import Flask, render_template, jsonify, Response
 import time
 import threading
+from bisect import bisect_right
+from typing import List, Tuple
 
 from usbadc.USBADC import USBADC
 from usbadc.packets import ADCChannel
@@ -9,6 +11,27 @@ app = Flask(__name__)
 
 usbadc = None
 connect_lock = threading.Lock()
+
+
+def interpolate(xy_values: List[Tuple[float, float]], value: float) -> float:
+    if not xy_values:
+        raise ValueError("xy_values cannot be empty")
+
+    if len(xy_values) == 1:
+        return xy_values[0][1]
+
+    xs = [x for x, _ in xy_values]
+    i = bisect_right(xs, value)
+
+    if i == 0:
+        return xy_values[0][1]
+    if i == len(xy_values):
+        return xy_values[-1][1]
+
+    x0, y0 = xy_values[i - 1]
+    x1, y1 = xy_values[i]
+
+    return y0 + (value - x0) * (y1 - y0) / (x1 - x0)
 
 
 def disconnect_usbadc():
@@ -87,6 +110,23 @@ def index():
 def data_power_meter():
     try:
         value = read_adc(ADCChannel.POWER_METER)
+        value = interpolate([
+            (0.50,  20),
+            (0.60,  15),
+            (0.73,  10),
+            (0.97,  5),
+            (1.00,  0),
+            (1.11, -5),
+            (1.21, -10),
+            (1.36, -15),
+            (1.48, -20),
+            (1.60, -25),
+            (1.71, -30),
+            (1.87, -35),
+            (2.00, -40),
+            (2.05, -45),
+            (2.1,  -50),
+        ], value)
 
         return jsonify({
             "timestamp": time.time(),
@@ -108,6 +148,12 @@ def data_power_meter():
 def data_temperature():
     try:
         value = read_adc(ADCChannel.TEMPERATURE)
+        # Depuis la datasheet:
+        # v =  0.55 + (0.045 / 20)t
+        # t = (v - 0.55) / (0.045 / 20)
+        print(value)
+        value = (value - 0.55) / (0.045 / 20) 
+        print(value)
 
         return jsonify({
             "timestamp": time.time(),
