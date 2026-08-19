@@ -10,8 +10,10 @@ Le USBADC est un petit PCB qui implémente plusieurs fonctionnalités:
 + 6 sorties digitales 3.3 volts pour du contrôlle ne nécessitant pas de puissance (`PA3`, `PA4`, `PA5`, `PA6`, `PA7`, `PA8`)
 + LED de statut du PCB, `D2` clignote lorsque le micro-contrôlleur n'a pas d'erreurs, et 4 autres LEDs indiquent si les générateurs de tensions fonctionnent (3.3V, 5V, 12V, 28V)
 
+
 ## Hardware
 KiCad 10.0 a été utilisé pour la conception du schématique et du PCB.
+
 
 ### Composantes
 ![USBADC](images/USBADC.png)
@@ -28,11 +30,12 @@ KiCad 10.0 a été utilisé pour la conception du schématique et du PCB.
 11. Sortie pour alimentation du powermeter et entrée de la température
 12. Entrée pour lecture de la puissance RF
 
+
 ### Programmation
 Pour envoyer un programme sur le micro-contrôlleur, il y a le port USB ainsi qu'un port SWD près du connecteur USB (header 6 pins).
 Pour le flasher par USB, il faut utiliser le périphérique DFU (Download Firmware Upgrade) qu'expose le bootloader to STM32. Par contre, je ne sais pas pourquoi, je n'ai pas été capable de le faire fonctionner plus qu'une seule fois.
 
-Pour le flasher par SWD, il faut un STlink. J'ai utilisé un [STlink-V3MINIE](https://www.st.com/en/development-tools/stlink-v3minie.html) auquel j'avais accès, il serait peut-être pertinent de s'en achter un. J'ai aussi utilisé [stlink-tools](https://github.com/stlink-org/stlink) pour envoyer le programme. Il faut brancher:
+Pour le flasher par SWD, il faut un STlink. J'ai utilisé un [STlink-V3MINIE](https://www.st.com/en/development-tools/stlink-v3minie.html) auquel j'avais accès, il serait peut-être pertinent de s'en acheter un. J'ai aussi utilisé [stlink-tools](https://github.com/stlink-org/stlink) pour envoyer le programme. Il faut brancher:
 
 | stlink | PCB   |
 |:------:|:-----:|
@@ -42,17 +45,22 @@ Pour le flasher par SWD, il faut un STlink. J'ai utilisé un [STlink-V3MINIE](ht
 | TMS    | SWDIO |
 | RST    | NRST  |
 
+Le pinout du PCB est visible sur KiCad, l'ordre est VCC, SWCLK, GND, SWDIO, NRST, no-connect en partant de la pin extérieure.
+
 
 ### USB
 La communication USB est faites avec un `STM32U073K8U6`, un micro-contrôlleur peu coûteux. C'est le moins cher qui a toutes les fonctionnalitées voulues, l'horloge pour le USB est générée à l'interne du chip.
 
+
 ### Génération 28V et 5V
 Les bucks et boosts ont été générées avec l'outil [WEBENCH](https://webench.ti.com/power-designer/switching-regulator?powerSupply=0) de Texas Instrument pour être sûr que les circuits fonctionnent, jusqu'à maintenant, il n'y a eu aucuns problèmes.
+
 
 ### Sécurité
 Pour la génération du 28V, il y a ~28 watts qui transitent dans cette partie du circuit. Il y a une fuse 4 ampères `F2` à l'entrée 12V du circuit et une fuse 1.5 ampères `F1` à la sortie 28V. De plus, il y a une diode schottky à la sortie 28V pour éviter d'envoyer des pics de tensions à l'amplificateur. Il y a aussi des condensateurs de capacitance équivalente 110µF pour lisser la tension entrante dans l'amplificateur.
 
 Il y a des points de tests un peu partout sur le PCB pour être capable de débugger plus facilement si il arrive un problème.
+
 
 ### Boutons
 Le PCB possède deux boutons, `BOOT0` et `Reset`.
@@ -60,6 +68,7 @@ Le PCB possède deux boutons, `BOOT0` et `Reset`.
 `Reset` permet de redémarrer le microcontrôlleur, pratique pour débugger ou pour le redémarrer si il ne répond pas.
 
 `BOOT0` permet de signaler au bootloader du microcontrôlleur que l'on désire flasher un programme pour qu'il expose la classe `DFU`. Il faut simplement tenir le bouton en appuyant sur `Reset`. Comme mentionné plus tôt, je ne comprends pas pourquoi je n'arrive pas à faire fonctionner cette option.
+
 
 ### Corrections à apporter sur une version future
 Les connecteurs pour le ventilateur et le power meter overlap et ne peuvent donc pas être soudés directement sur le PCB.
@@ -72,12 +81,14 @@ Mettre un connecteur USB mâle à la place d'un connecteur USB femelle car les c
 
 Monitorer la tension du 28V avec le STM32 pour pouvoir voir son statut par USB au lieu de devoir regarder la LED. Sur la version actuelle, il est possible de mettre un diviseur de tension sur le pad 28V et rentrer ça dans la pin A3.
 
+
 ## Firmware
 La grande majorité du code dans `firmware/` a été générée avec `STM32CubeMX`, un outil pour initialiser des projets pour des STM32, ils s'occupent d'initialiser toutes les périphériques, vérifier que la configuration de clocks choisie est correcte, etc.
 
 Les paramètres pour CubeMX sont dans le fichier `firmware/USBADC.ioc`.
 
 Le coeur de la logique a été implémentée dans `firmware/USBX/App/` en C.
+
 
 ### Compilation
 Pour compiler le programme, il suffit d'écrire `make` si la toolchain de développement `arm` est installée. Je développais sur un ordinateur Linux et je roulais souvant 
@@ -88,11 +99,14 @@ pour compiler et puis envoyer le programme sur le microcontrôlleur. Je ne suis 
 
 J'ai utilisé la "Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203". Tout fonctionne avec celle là, il n'y a surement pas de soucis à prendre une autre version.
 
+
 ### Débuggage
 Pour débugger, `STM32CubeIDE` et `stlink-tools` permettent d'ouvrir une session `gdb` et d'explorer la mémoire du microcontrolleur. Avec `stlink-tools`, je roulais dans un terminal `st-util` et dans l'autre `gdb build/USBADC.elf`, puis dans la session gdb `target remote localhost:4242`.
 
+
 ### Connection USB
 Le périphérique USB crée expose une classe USB CDC ACM, (Character Device Class, Abstract Control Modem). Cette classe permet d'envoyer une série d'octet à l'appareil ainsi que d'en recevoir une. Lorsque branchée dans un ordinateur, le PCB devrait apparaître comme `/dev/ttyUSB*` sur Linux et `COM*` sur Windows. La LED devrait aussi clignotée si le microcontrôlleur est alimentée correctement et qu'il n'y a pas d'erreurs.
+
 
 ### Protocole de communication
 La communication se produit par paquets entre le serveur (l'ordinateur) et le client (l'USBADC).
@@ -134,6 +148,7 @@ Sur le mesasge `REQUEST_REBOOT`, le client répond avec `RESPONSE_STATUS` et red
 Sur le message `REQUEST_VERSION`, le client répond avec la version du protocole qu'il utilise. Cela permet de s'assurer que le client et le serveur sont sur la même version et que toutes les fonctionnalitées sont fonctionelles et supportées des deux côtés.
 
 Sur tous les messages, le client peut répondre avec `RESPONSE_STATUS` et spécifier la raison (`enum USBADC_PROTOCOL_RESPONS_STATUS_REASONS`).
+
 
 ### Fichiers (`firmware/USBX/App/`)
 + `app_usbx_device.c`: Point d'entrée `ThreadX` qui initialise les tâches et le périphérique USB et les files.
