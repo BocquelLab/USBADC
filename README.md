@@ -95,7 +95,7 @@ Pour compiler le programme, il suffit d'écrire `make` si la toolchain de dével
 ```
 make -j4; st-flash erase; st-flash write build/USBADC.bin 0x08000000
 ```
-pour compiler et puis envoyer le programme sur le microcontrôlleur. Je ne suis pas certain que les `Makefile` sont supportés dans `STM32CubeIDE` (IDE de développement pour un STM32 installée sur l'ordinateur du laboratoire), je vais essayer de regarder ça pour que ça compile sur l'ordi du labo.
+pour compiler et puis envoyer le programme sur le microcontrôlleur. Je ne suis pas certain que les `Makefile` sont supportés dans `STM32CubeIDE` (IDE de développement pour un STM32 installée sur l'ordinateur du laboratoire).
 
 J'ai utilisé la "Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203". Tout fonctionne avec celle là, il n'y a surement pas de soucis à prendre une autre version.
 
