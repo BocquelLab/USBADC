@@ -245,10 +245,10 @@
             const temperatureData = temperatureChart.data.datasets[0].data;
             const pinA3Data = pinA3Chart.data.datasets[0].data;
             const maxLength = Math.max(powerData.length, temperatureData.length, pinA3Data.length);
-            const rows = [["Temps (s)", "Puissance (dBm)", "Température (°C)", "PA3 (V)"]];
+            const rows = [["Temps Unix (s)", "Puissance (dBm)", "Température (°C)", "PA3 (V)"]];
             for (let i = 0; i < maxLength; i++) {
                 rows.push([
-                    powerData[i]?.x ?? "",
+                    powerData[i]?.unixTime ?? "",
                     powerData[i]?.y ?? "",
                     temperatureData[i]?.y ?? "",
                     pinA3Data[i]?.y ?? ""]);
@@ -333,6 +333,7 @@
             chart.data.datasets[0].data.push({
                 x: (performance.now() - startTime) / 1000,
                 y: value
+                unixTime: Date.now() / 1000,
             });
         }
 
