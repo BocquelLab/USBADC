@@ -332,7 +332,7 @@
         function addPoint(chart, value) {
             chart.data.datasets[0].data.push({
                 x: (performance.now() - startTime) / 1000,
-                y: value
+                y: value,
                 unixTime: Date.now() / 1000,
             });
         }
